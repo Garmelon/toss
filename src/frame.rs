@@ -2,9 +2,11 @@ use crossterm::style::ContentStyle;
 
 use crate::buffer::Buffer;
 pub use crate::buffer::{Pos, Size};
+use crate::widthdb::WidthDB;
 
 #[derive(Debug, Default)]
 pub struct Frame {
+    pub(crate) widthdb: WidthDB,
     pub(crate) buffer: Buffer,
     cursor: Option<Pos>,
 }
@@ -35,7 +37,11 @@ impl Frame {
         self.set_cursor(None);
     }
 
+    pub fn width(&mut self, s: &str) -> u8 {
+        self.widthdb.width(s)
+    }
+
     pub fn write(&mut self, pos: Pos, content: &str, style: ContentStyle) {
-        self.buffer.write(pos, content, style);
+        self.buffer.write(&mut self.widthdb, pos, content, style);
     }
 }

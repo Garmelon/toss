@@ -1,6 +1,7 @@
 use crossterm::style::ContentStyle;
 use unicode_segmentation::UnicodeSegmentation;
-use unicode_width::UnicodeWidthStr;
+
+use crate::widthdb::WidthDB;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {
@@ -95,13 +96,19 @@ impl Buffer {
         self.data.fill_with(Cell::empty);
     }
 
-    pub fn write(&mut self, mut pos: Pos, content: &str, style: ContentStyle) {
+    pub fn write(
+        &mut self,
+        widthdb: &mut WidthDB,
+        mut pos: Pos,
+        content: &str,
+        style: ContentStyle,
+    ) {
         if pos.y < 0 || pos.y >= self.size.height as i32 {
             return;
         }
 
         for grapheme in content.graphemes(true) {
-            let width = grapheme.width().max(1) as u8; // TODO Use actual width
+            let width = widthdb.width(grapheme);
             if pos.x >= 0 && pos.x + width as i32 <= self.size.width as i32 {
                 // Grapheme fits on buffer in its entirety
                 let grapheme = grapheme.to_string().into_boxed_str();

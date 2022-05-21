@@ -1,19 +1,10 @@
 use std::io;
 
 use crossterm::style::{ContentStyle, Stylize};
-use toss::frame::Pos;
+use toss::frame::{Frame, Pos};
 use toss::terminal::Terminal;
 
-fn main() -> io::Result<()> {
-    // Automatically enters alternate screen and enables raw mode
-    let mut term = Terminal::new()?;
-
-    // Must be called before rendering, otherwise the terminal has out-of-date
-    // size information and will present garbage.
-    term.autoresize()?;
-
-    // Render stuff onto the next frame
-    let f = term.frame();
+fn draw(f: &mut Frame) {
     f.write(
         Pos::new(0, 0),
         "Hello world!",
@@ -25,9 +16,23 @@ fn main() -> io::Result<()> {
         ContentStyle::default().on_dark_blue(),
     );
     f.show_cursor(Pos::new(16, 0));
+}
 
-    // Show the next frame on the screen
-    term.present()?;
+fn main() -> io::Result<()> {
+    // Automatically enters alternate screen and enables raw mode
+    let mut term = Terminal::new()?;
+
+    loop {
+        // Must be called before rendering, otherwise the terminal has out-of-date
+        // size information and will present garbage.
+        term.autoresize()?;
+
+        draw(term.frame());
+
+        if !term.present()? {
+            break;
+        }
+    }
 
     // Wait for input before exiting
     let _ = crossterm::event::read();

@@ -64,10 +64,23 @@ impl Terminal {
     }
 
     /// Display the current frame on the screen and prepare the next frame.
+    /// Returns `true` if an immediate redraw is required.
     ///
     /// After calling this function, the frame returned by [`Self::frame`] will
     /// be empty again and have no cursor position.
-    pub fn present(&mut self) -> io::Result<()> {
+    pub fn present(&mut self) -> io::Result<bool> {
+        if self.frame.widthdb.measuring_required() {
+            self.frame.widthdb.measure_widths(&mut self.out)?;
+            // Since we messed up the screen by measuring widths, we'll need to
+            // do a full redraw the next time around.
+            self.full_redraw = true;
+            // Throwing away the current frame because its content were rendered
+            // with unconfirmed width data. Also, this function guarantees that
+            // after it is called, the frame is empty.
+            self.frame.reset();
+            return Ok(true);
+        }
+
         if self.full_redraw {
             io::stdout().queue(Clear(ClearType::All))?;
             self.prev_frame_buffer.reset(); // Because the screen is now empty
@@ -81,7 +94,7 @@ impl Terminal {
         mem::swap(&mut self.prev_frame_buffer, &mut self.frame.buffer);
         self.frame.reset();
 
-        Ok(())
+        Ok(false)
     }
 
     fn draw_differences(&mut self) -> io::Result<()> {
