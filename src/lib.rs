@@ -1,2 +1,3 @@
-pub mod buffer;
+mod buffer;
+pub mod frame;
 pub mod terminal;

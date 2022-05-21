@@ -2,7 +2,7 @@ use crossterm::style::ContentStyle;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {
     pub width: u16,
     pub height: u16,
@@ -48,22 +48,13 @@ impl Cell {
     }
 }
 
+#[derive(Debug, Default)]
 pub struct Buffer {
     size: Size,
     data: Vec<Cell>,
-    cursor: Option<Pos>,
 }
 
 impl Buffer {
-    #[allow(clippy::new_without_default)]
-    pub fn new() -> Self {
-        Self {
-            size: Size::ZERO,
-            data: vec![],
-            cursor: None,
-        }
-    }
-
     fn index(&self, x: u16, y: u16) -> usize {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
@@ -86,7 +77,6 @@ impl Buffer {
     pub fn resize(&mut self, size: Size) {
         if size == self.size() {
             self.data.fill_with(Cell::empty);
-            self.cursor = None;
         } else {
             let width: usize = size.width.into();
             let height: usize = size.height.into();
@@ -95,7 +85,6 @@ impl Buffer {
             self.size = size;
             self.data.clear();
             self.data.resize_with(len, Cell::empty);
-            self.cursor = None;
         }
     }
 
@@ -104,7 +93,6 @@ impl Buffer {
     /// `buf.reset()` is equivalent to `buf.resize(buf.size())`.
     pub fn reset(&mut self) {
         self.data.fill_with(Cell::empty);
-        self.cursor = None;
     }
 
     pub fn write(&mut self, mut pos: Pos, content: &str, style: ContentStyle) {
@@ -131,14 +119,6 @@ impl Buffer {
 
             pos.x += width as i32;
         }
-    }
-
-    pub fn cursor(&self) -> Option<Pos> {
-        self.cursor
-    }
-
-    pub fn set_cursor(&mut self, pos: Option<Pos>) {
-        self.cursor = pos;
     }
 
     pub fn cells(&self) -> Cells<'_> {
