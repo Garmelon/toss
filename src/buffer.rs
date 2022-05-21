@@ -30,7 +30,7 @@ impl Pos {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cell {
     pub content: Box<str>,
     pub style: ContentStyle,
@@ -65,6 +65,12 @@ impl Buffer {
         let width: usize = self.size.width.into();
 
         y * width + x
+    }
+
+    pub(crate) fn at(&self, x: u16, y: u16) -> &Cell {
+        assert!(x < self.size.width);
+        assert!(y < self.size.height);
+        &self.data[self.index(x, y)]
     }
 
     pub fn size(&self) -> Size {
@@ -143,14 +149,6 @@ pub struct Cells<'a> {
     y: u16,
 }
 
-impl<'a> Cells<'a> {
-    fn at(&self, x: u16, y: u16) -> &'a Cell {
-        assert!(x < self.buffer.size.width);
-        assert!(y < self.buffer.size.height);
-        &self.buffer.data[self.buffer.index(x, y)]
-    }
-}
-
 impl<'a> Iterator for Cells<'a> {
     type Item = (u16, u16, &'a Cell);
 
@@ -160,7 +158,7 @@ impl<'a> Iterator for Cells<'a> {
         }
 
         let (x, y) = (self.x, self.y);
-        let cell = self.at(self.x, self.y);
+        let cell = self.buffer.at(self.x, self.y);
         assert!(cell.offset == 0);
 
         self.x += cell.width as u16;

@@ -98,8 +98,11 @@ impl Terminal {
     }
 
     fn draw_differences(&mut self) -> io::Result<()> {
-        // TODO Only draw the differences
         for (x, y, cell) in self.frame.buffer.cells() {
+            if self.prev_frame_buffer.at(x, y) == cell {
+                continue;
+            }
+
             let content = StyledContent::new(cell.style, &cell.content as &str);
             self.out
                 .queue(MoveTo(x, y))?
