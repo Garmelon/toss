@@ -24,6 +24,7 @@ fn main() -> io::Result<()> {
         "Press any key to exit",
         ContentStyle::default().on_dark_blue(),
     );
+    b.set_cursor(Some(Pos::new(16, 0)));
 
     // Show the buffer's contents on screen
     term.present()?;

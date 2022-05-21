@@ -51,6 +51,7 @@ impl Cell {
 pub struct Buffer {
     size: Size,
     data: Vec<Cell>,
+    cursor: Option<Pos>,
 }
 
 impl Buffer {
@@ -59,6 +60,7 @@ impl Buffer {
         Self {
             size: Size::ZERO,
             data: vec![],
+            cursor: None,
         }
     }
 
@@ -77,19 +79,32 @@ impl Buffer {
         self.size
     }
 
+    /// Resize the buffer and reset its contents.
+    ///
+    /// The buffer's contents are reset even if the buffer is already the
+    /// correct size.
     pub fn resize(&mut self, size: Size) {
-        let width: usize = size.width.into();
-        let height: usize = size.height.into();
-        let len = width * height;
+        if size == self.size() {
+            self.data.fill_with(Cell::empty);
+            self.cursor = None;
+        } else {
+            let width: usize = size.width.into();
+            let height: usize = size.height.into();
+            let len = width * height;
 
-        self.size = size;
-        self.data.clear();
-        self.data.resize_with(len, Cell::empty);
+            self.size = size;
+            self.data.clear();
+            self.data.resize_with(len, Cell::empty);
+            self.cursor = None;
+        }
     }
 
-    /// Reset all cells of the buffer to be empty and have no styling.
+    /// Reset the contents of the buffer.
+    ///
+    /// `buf.reset()` is equivalent to `buf.resize(buf.size())`.
     pub fn reset(&mut self) {
-        self.resize(self.size);
+        self.data.fill_with(Cell::empty);
+        self.cursor = None;
     }
 
     pub fn write(&mut self, mut pos: Pos, content: &str, style: ContentStyle) {
@@ -116,6 +131,14 @@ impl Buffer {
 
             pos.x += width as i32;
         }
+    }
+
+    pub fn cursor(&self) -> Option<Pos> {
+        self.cursor
+    }
+
+    pub fn set_cursor(&mut self, pos: Option<Pos>) {
+        self.cursor = pos;
     }
 
     pub fn cells(&self) -> Cells<'_> {

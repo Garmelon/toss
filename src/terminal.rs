@@ -1,7 +1,7 @@
 use std::io::Write;
 use std::{io, mem};
 
-use crossterm::cursor::MoveTo;
+use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::style::{PrintStyledContent, StyledContent};
 use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{ExecutableCommand, QueueableCommand};
@@ -65,9 +65,11 @@ impl Terminal {
         }
 
         self.draw_differences()?;
+        self.update_cursor()?;
         self.out.flush()?;
 
         mem::swap(&mut self.prev_buffer, &mut self.curr_buffer);
+        self.curr_buffer.reset();
 
         Ok(())
     }
@@ -80,7 +82,23 @@ impl Terminal {
                 .queue(MoveTo(x, y))?
                 .queue(PrintStyledContent(content))?;
         }
+        Ok(())
+    }
 
+    fn update_cursor(&mut self) -> io::Result<()> {
+        if let Some(pos) = self.curr_buffer.cursor() {
+            let size = self.curr_buffer.size();
+            let x_in_bounds = 0 <= pos.x && pos.x < size.width as i32;
+            let y_in_bounds = 0 <= pos.y && pos.y < size.height as i32;
+            if x_in_bounds && y_in_bounds {
+                self.out
+                    .queue(Show)?
+                    .queue(MoveTo(pos.x as u16, pos.y as u16))?;
+                return Ok(());
+            }
+        }
+
+        self.out.queue(Hide)?;
         Ok(())
     }
 }
