@@ -23,8 +23,9 @@ pub struct Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        let _ = self.out.execute(LeaveAlternateScreen);
         let _ = crossterm::terminal::disable_raw_mode();
+        let _ = self.out.execute(LeaveAlternateScreen);
+        let _ = self.out.execute(Show);
     }
 }
 
