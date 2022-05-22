@@ -38,8 +38,8 @@ pub struct Cell {
     pub offset: u8,
 }
 
-impl Cell {
-    pub fn empty() -> Self {
+impl Default for Cell {
+    fn default() -> Self {
         Self {
             content: " ".to_string().into_boxed_str(),
             style: ContentStyle::default(),
@@ -70,7 +70,15 @@ impl Buffer {
     pub(crate) fn at(&self, x: u16, y: u16) -> &Cell {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
-        &self.data[self.index(x, y)]
+        let i = self.index(x, y);
+        &self.data[i]
+    }
+
+    fn at_mut(&mut self, x: u16, y: u16) -> &mut Cell {
+        assert!(x < self.size.width);
+        assert!(y < self.size.height);
+        let i = self.index(x, y);
+        &mut self.data[i]
     }
 
     pub fn size(&self) -> Size {
@@ -83,7 +91,7 @@ impl Buffer {
     /// correct size.
     pub fn resize(&mut self, size: Size) {
         if size == self.size() {
-            self.data.fill_with(Cell::empty);
+            self.data.fill_with(Cell::default);
         } else {
             let width: usize = size.width.into();
             let height: usize = size.height.into();
@@ -91,7 +99,7 @@ impl Buffer {
 
             self.size = size;
             self.data.clear();
-            self.data.resize_with(len, Cell::empty);
+            self.data.resize_with(len, Cell::default);
         }
     }
 
@@ -99,7 +107,24 @@ impl Buffer {
     ///
     /// `buf.reset()` is equivalent to `buf.resize(buf.size())`.
     pub fn reset(&mut self) {
-        self.data.fill_with(Cell::empty);
+        self.data.fill_with(Cell::default);
+    }
+
+    /// Remove the grapheme at the specified coordinates from the buffer.
+    ///
+    /// Removes the entire grapheme, not just the cell at the coordinates.
+    /// Preserves the style of the affected cells. Works even if the coordinates
+    /// don't point to the beginning of the grapheme.
+    fn erase(&mut self, x: u16, y: u16) {
+        let cell = self.at(x, y);
+        let width: u16 = cell.width.into();
+        let offset: u16 = cell.offset.into();
+        for x in (x - offset)..(x - offset + width) {
+            let cell = self.at_mut(x, y);
+            let style = cell.style;
+            *cell = Cell::default();
+            cell.style = style;
+        }
     }
 
     pub fn write(
@@ -109,28 +134,54 @@ impl Buffer {
         content: &str,
         style: ContentStyle,
     ) {
+        // If we're not even visible, there's nothing to do
         if pos.y < 0 || pos.y >= self.size.height as i32 {
             return;
         }
+        let y = pos.y as u16;
 
         for grapheme in content.graphemes(true) {
             let width = widthdb.width(grapheme);
-            if pos.x >= 0 && pos.x + width as i32 <= self.size.width as i32 {
-                // Grapheme fits on buffer in its entirety
-                let grapheme = grapheme.to_string().into_boxed_str();
-
-                for offset in 0..width {
-                    let i = self.index(pos.x as u16 + offset as u16, pos.y as u16);
-                    self.data[i] = Cell {
-                        content: grapheme.clone(),
-                        style,
-                        width,
-                        offset,
-                    };
-                }
-            }
-
+            self.write_grapheme(pos.x, y, width, grapheme, style);
             pos.x += width as i32;
+        }
+    }
+
+    /// Assumes that `pos.y` is in range.
+    fn write_grapheme(&mut self, x: i32, y: u16, width: u8, grapheme: &str, style: ContentStyle) {
+        let min_x = 0;
+        let max_x = self.size.width as i32 - 1; // Last possible cell
+
+        let start_x = x;
+        let end_x = x + width as i32 - 1; // Coordinate of last cell
+
+        if start_x > max_x || end_x < min_x {
+            return; // Not visible
+        }
+
+        if start_x >= min_x && end_x <= max_x {
+            // Fully visible, write actual grapheme
+            for offset in 0..width {
+                let x = start_x as u16 + offset as u16;
+                self.erase(x, y);
+                *self.at_mut(x, y) = Cell {
+                    content: grapheme.to_string().into_boxed_str(),
+                    style,
+                    width,
+                    offset,
+                };
+            }
+        } else {
+            // Partially visible, write empty cells with correct style
+            let start_x = start_x.max(0) as u16;
+            let end_x = end_x.min(max_x) as u16;
+            for x in start_x..=end_x {
+                self.erase(x, y);
+                *self.at_mut(x, y) = Cell {
+                    style,
+                    ..Default::default()
+                };
+            }
         }
     }
 
