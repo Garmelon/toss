@@ -1,3 +1,5 @@
+//! Displaying frames on a terminal.
+
 use std::io::Write;
 use std::{io, mem};
 

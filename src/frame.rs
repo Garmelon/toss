@@ -1,3 +1,5 @@
+//! Rendering the next frame.
+
 use crossterm::style::ContentStyle;
 
 use crate::buffer::Buffer;
