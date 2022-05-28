@@ -1,8 +1,7 @@
-use std::io;
-
+use crossterm::event::Event;
 use crossterm::style::{ContentStyle, Stylize};
 use toss::frame::{Frame, Pos};
-use toss::terminal::Terminal;
+use toss::terminal::{Redraw, Terminal};
 
 fn draw(f: &mut Frame) {
     f.write(
@@ -18,24 +17,32 @@ fn draw(f: &mut Frame) {
     f.show_cursor(Pos::new(16, 0));
 }
 
-fn main() -> io::Result<()> {
-    // Automatically enters alternate screen and enables raw mode
-    let mut term = Terminal::new()?;
-
+fn render_frame(term: &mut Terminal) {
     loop {
         // Must be called before rendering, otherwise the terminal has out-of-date
         // size information and will present garbage.
-        term.autoresize()?;
+        term.autoresize().unwrap();
 
         draw(term.frame());
 
-        if !term.present()? {
+        if term.present().unwrap() == Redraw::NotRequired {
             break;
         }
     }
+}
 
-    // Wait for input before exiting
-    let _ = crossterm::event::read();
+fn main() {
+    // Automatically enters alternate screen and enables raw mode
+    let mut term = Terminal::new().unwrap();
 
-    Ok(())
+    loop {
+        // Render and display a frame. A full frame is displayed on the terminal
+        // once this function exits.
+        render_frame(&mut term);
+
+        // Exit if the user presses any buttons
+        if !matches!(crossterm::event::read().unwrap(), Event::Resize(_, _)) {
+            break;
+        }
+    }
 }

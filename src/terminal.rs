@@ -11,6 +11,12 @@ use crossterm::{ExecutableCommand, QueueableCommand};
 use crate::buffer::{Buffer, Size};
 use crate::frame::Frame;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Redraw {
+    Required,
+    NotRequired,
+}
+
 pub struct Terminal {
     /// Render target.
     out: Box<dyn Write>,
@@ -71,7 +77,7 @@ impl Terminal {
     ///
     /// After calling this function, the frame returned by [`Self::frame`] will
     /// be empty again and have no cursor position.
-    pub fn present(&mut self) -> io::Result<bool> {
+    pub fn present(&mut self) -> io::Result<Redraw> {
         if self.frame.widthdb.measuring_required() {
             self.frame.widthdb.measure_widths(&mut self.out)?;
             // Since we messed up the screen by measuring widths, we'll need to
@@ -81,7 +87,7 @@ impl Terminal {
             // with unconfirmed width data. Also, this function guarantees that
             // after it is called, the frame is empty.
             self.frame.reset();
-            return Ok(true);
+            return Ok(Redraw::Required);
         }
 
         if self.full_redraw {
@@ -97,7 +103,7 @@ impl Terminal {
         mem::swap(&mut self.prev_frame_buffer, &mut self.frame.buffer);
         self.frame.reset();
 
-        Ok(false)
+        Ok(Redraw::NotRequired)
     }
 
     fn draw_differences(&mut self) -> io::Result<()> {
