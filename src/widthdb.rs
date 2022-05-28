@@ -16,18 +16,32 @@ pub struct WidthDB {
 }
 
 impl WidthDB {
+    /// Determine the width of a grapheme.
+    ///
+    /// If the width has not been measured yet, it is estimated using the
+    /// Unicode Standard Annex #11.
+    pub fn grapheme_width(&mut self, grapheme: &str) -> u8 {
+        assert_eq!(Some(grapheme), grapheme.graphemes(true).next());
+        if let Some(width) = self.known.get(grapheme) {
+            *width
+        } else {
+            self.requested.insert(grapheme.to_string());
+            grapheme.width() as u8
+        }
+    }
+
     /// Determine the width of a string based on its graphemes.
     ///
     /// If the width of a grapheme has not been measured yet, it is estimated
     /// using the Unicode Standard Annex #11.
-    pub fn width(&mut self, s: &str) -> u8 {
-        let mut total = 0;
+    pub fn width(&mut self, s: &str) -> usize {
+        let mut total: usize = 0;
         for grapheme in s.graphemes(true) {
             total += if let Some(width) = self.known.get(grapheme) {
-                *width
+                (*width).into()
             } else {
                 self.requested.insert(grapheme.to_string());
-                grapheme.width() as u8
+                grapheme.width()
             };
         }
         total

@@ -141,7 +141,7 @@ impl Buffer {
         let y = pos.y as u16;
 
         for grapheme in content.graphemes(true) {
-            let width = widthdb.width(grapheme);
+            let width = widthdb.grapheme_width(grapheme);
             self.write_grapheme(pos.x, y, width, grapheme, style);
             pos.x += width as i32;
         }
