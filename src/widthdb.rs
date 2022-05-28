@@ -65,7 +65,7 @@ impl WidthDB {
                 .queue(MoveTo(0, 0))?
                 .queue(Print(&grapheme))?;
             out.flush()?;
-            let width = crossterm::cursor::position()?.0.max(1) as u8;
+            let width = crossterm::cursor::position()?.0 as u8;
             self.known.insert(grapheme, width);
         }
         Ok(())

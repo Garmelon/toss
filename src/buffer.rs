@@ -142,7 +142,9 @@ impl Buffer {
 
         for grapheme in content.graphemes(true) {
             let width = widthdb.grapheme_width(grapheme);
-            self.write_grapheme(pos.x, y, width, grapheme, style);
+            if width > 0 {
+                self.write_grapheme(pos.x, y, width, grapheme, style);
+            }
             pos.x += width as i32;
         }
     }
