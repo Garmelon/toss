@@ -5,6 +5,7 @@ use crossterm::style::ContentStyle;
 use crate::buffer::Buffer;
 pub use crate::buffer::{Pos, Size};
 use crate::widthdb::WidthDB;
+use crate::wrap;
 
 #[derive(Debug, Default)]
 pub struct Frame {
@@ -53,6 +54,10 @@ impl Frame {
     /// using the Unicode Standard Annex #11.
     pub fn width(&mut self, s: &str) -> usize {
         self.widthdb.width(s)
+    }
+
+    pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
+        wrap::wrap(text, width, &mut self.widthdb)
     }
 
     pub fn write(&mut self, pos: Pos, content: &str, style: ContentStyle) {
