@@ -16,7 +16,6 @@ fn draw(f: &mut Frame) {
         "It can also properly handle wide graphemes (like emoji 🤔), ",
         "including ones usually displayed incorrectly by terminal emulators, like 👩‍🔬 (a female scientist emoji).",
     );
-    // TODO Actually use nbsp
 
     let breaks = f.wrap(text, f.size().width.into());
     let lines = toss::split_at_indices(text, &breaks);
