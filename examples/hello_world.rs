@@ -1,7 +1,7 @@
 use crossterm::event::Event;
 use crossterm::style::{ContentStyle, Stylize};
 use toss::frame::{Frame, Pos};
-use toss::terminal::{Redraw, Terminal};
+use toss::terminal::Terminal;
 
 fn draw(f: &mut Frame) {
     f.write(
@@ -24,8 +24,11 @@ fn render_frame(term: &mut Terminal) {
         term.autoresize().unwrap();
 
         draw(term.frame());
+        term.present().unwrap();
 
-        if term.present().unwrap() == Redraw::NotRequired {
+        if term.measuring_required() {
+            term.measure_widths().unwrap();
+        } else {
             break;
         }
     }
@@ -34,6 +37,7 @@ fn render_frame(term: &mut Terminal) {
 fn main() {
     // Automatically enters alternate screen and enables raw mode
     let mut term = Terminal::new().unwrap();
+    term.set_measuring(true);
 
     loop {
         // Render and display a frame. A full frame is displayed on the terminal

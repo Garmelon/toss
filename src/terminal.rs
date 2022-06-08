@@ -11,12 +11,6 @@ use crossterm::{ExecutableCommand, QueueableCommand};
 use crate::buffer::{Buffer, Size};
 use crate::frame::Frame;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Redraw {
-    Required,
-    NotRequired,
-}
-
 pub struct Terminal {
     /// Render target.
     out: Box<dyn Write>,
@@ -54,6 +48,24 @@ impl Terminal {
         Ok(result)
     }
 
+    pub fn set_measuring(&mut self, active: bool) {
+        self.frame.widthdb.active = active;
+    }
+
+    pub fn measuring(&self) -> bool {
+        self.frame.widthdb.active
+    }
+
+    pub fn measuring_required(&self) -> bool {
+        self.frame.widthdb.measuring_required()
+    }
+
+    pub fn measure_widths(&mut self) -> io::Result<()> {
+        self.frame.widthdb.measure_widths(&mut self.out)?;
+        self.full_redraw = true;
+        Ok(())
+    }
+
     /// Resize the frame and other internal buffers if the terminal size has
     /// changed.
     pub fn autoresize(&mut self) -> io::Result<()> {
@@ -77,19 +89,7 @@ impl Terminal {
     ///
     /// After calling this function, the frame returned by [`Self::frame`] will
     /// be empty again and have no cursor position.
-    pub fn present(&mut self) -> io::Result<Redraw> {
-        if self.frame.widthdb.measuring_required() {
-            self.frame.widthdb.measure_widths(&mut self.out)?;
-            // Since we messed up the screen by measuring widths, we'll need to
-            // do a full redraw the next time around.
-            self.full_redraw = true;
-            // Throwing away the current frame because its content were rendered
-            // with unconfirmed width data. Also, this function guarantees that
-            // after it is called, the frame is empty.
-            self.frame.reset();
-            return Ok(Redraw::Required);
-        }
-
+    pub fn present(&mut self) -> io::Result<()> {
         if self.full_redraw {
             io::stdout().queue(Clear(ClearType::All))?;
             self.prev_frame_buffer.reset(); // Because the screen is now empty
@@ -103,7 +103,7 @@ impl Terminal {
         mem::swap(&mut self.prev_frame_buffer, &mut self.frame.buffer);
         self.frame.reset();
 
-        Ok(Redraw::NotRequired)
+        Ok(())
     }
 
     fn draw_differences(&mut self) -> io::Result<()> {
