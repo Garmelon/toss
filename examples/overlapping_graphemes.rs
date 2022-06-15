@@ -64,6 +64,7 @@ fn render_frame(term: &mut Terminal) {
         term.autoresize().unwrap();
 
         draw(term.frame());
+        term.present().unwrap();
 
         if term.measuring_required() {
             term.measure_widths().unwrap();
