@@ -25,9 +25,7 @@ pub struct Terminal {
 
 impl Drop for Terminal {
     fn drop(&mut self) {
-        let _ = crossterm::terminal::disable_raw_mode();
-        let _ = self.out.execute(LeaveAlternateScreen);
-        let _ = self.out.execute(Show);
+        let _ = self.suspend();
     }
 }
 
@@ -43,9 +41,22 @@ impl Terminal {
             prev_frame_buffer: Buffer::default(),
             full_redraw: true,
         };
-        crossterm::terminal::enable_raw_mode()?;
-        result.out.execute(EnterAlternateScreen)?;
+        result.unsuspend()?;
         Ok(result)
+    }
+
+    pub fn suspend(&mut self) -> io::Result<()> {
+        crossterm::terminal::disable_raw_mode()?;
+        self.out.execute(LeaveAlternateScreen)?;
+        self.out.execute(Show)?;
+        Ok(())
+    }
+
+    pub fn unsuspend(&mut self) -> io::Result<()> {
+        crossterm::terminal::enable_raw_mode()?;
+        self.out.execute(EnterAlternateScreen)?;
+        self.full_redraw = true;
+        Ok(())
     }
 
     pub fn set_measuring(&mut self, active: bool) {
