@@ -6,13 +6,14 @@ use toss::terminal::Terminal;
 fn draw(f: &mut Frame) {
     f.write(
         Pos::new(0, 0),
-        "Hello world!",
-        ContentStyle::default().green(),
+        ("Hello world!", ContentStyle::default().green()),
     );
     f.write(
         Pos::new(0, 1),
-        "Press any key to exit",
-        ContentStyle::default().on_dark_blue(),
+        (
+            "Press any key to exit",
+            ContentStyle::default().on_dark_blue(),
+        ),
     );
     f.show_cursor(Pos::new(16, 0));
 }

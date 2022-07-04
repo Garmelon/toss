@@ -75,21 +75,3 @@ pub fn wrap(text: &str, width: usize, widthdb: &mut WidthDB) -> Vec<usize> {
 
     breaks
 }
-
-pub fn split_at_indices<'a>(s: &'a str, indices: &[usize]) -> Vec<&'a str> {
-    let mut slices = vec![];
-
-    let mut rest = s;
-    let mut offset = 0;
-
-    for i in indices {
-        let (left, right) = rest.split_at(i - offset);
-        slices.push(left);
-        rest = right;
-        offset = *i;
-    }
-
-    slices.push(rest);
-
-    slices
-}

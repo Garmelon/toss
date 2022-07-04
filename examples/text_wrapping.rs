@@ -1,6 +1,6 @@
 use crossterm::event::Event;
-use crossterm::style::ContentStyle;
 use toss::frame::{Frame, Pos};
+use toss::styled::Styled;
 use toss::terminal::Terminal;
 
 fn draw(f: &mut Frame) {
@@ -18,13 +18,10 @@ fn draw(f: &mut Frame) {
     );
 
     let breaks = f.wrap(text, f.size().width.into());
-    let lines = toss::split_at_indices(text, &breaks);
-    for (i, line) in lines.iter().enumerate() {
-        f.write(
-            Pos::new(0, i as i32),
-            line.trim_end(),
-            ContentStyle::default(),
-        );
+    let lines = Styled::default().then(text).split_at_indices(&breaks);
+    for (i, mut line) in lines.into_iter().enumerate() {
+        line.trim_end();
+        f.write(Pos::new(0, i as i32), line);
     }
 }
 

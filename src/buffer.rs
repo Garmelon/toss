@@ -1,6 +1,7 @@
 use crossterm::style::ContentStyle;
 use unicode_segmentation::UnicodeSegmentation;
 
+use crate::styled::Styled;
 use crate::widthdb::WidthDB;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
@@ -127,23 +128,23 @@ impl Buffer {
         }
     }
 
-    pub fn write(
-        &mut self,
-        widthdb: &mut WidthDB,
-        mut pos: Pos,
-        content: &str,
-        style: ContentStyle,
-    ) {
+    pub fn write(&mut self, widthdb: &mut WidthDB, mut pos: Pos, styled: &Styled) {
         // If we're not even visible, there's nothing to do
         if pos.y < 0 || pos.y >= self.size.height as i32 {
             return;
         }
         let y = pos.y as u16;
 
-        for grapheme in content.graphemes(true) {
-            let width = widthdb.grapheme_width(grapheme);
+        for styled_grapheme in styled.styled_graphemes() {
+            let width = widthdb.grapheme_width(styled_grapheme.content());
             if width > 0 {
-                self.write_grapheme(pos.x, y, width, grapheme, style);
+                self.write_grapheme(
+                    pos.x,
+                    y,
+                    width,
+                    styled_grapheme.content(),
+                    *styled_grapheme.style(),
+                );
             }
             pos.x += width as i32;
         }

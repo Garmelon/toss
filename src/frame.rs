@@ -4,6 +4,7 @@ use crossterm::style::ContentStyle;
 
 use crate::buffer::Buffer;
 pub use crate::buffer::{Pos, Size};
+use crate::styled::Styled;
 use crate::widthdb::WidthDB;
 use crate::wrap;
 
@@ -60,7 +61,7 @@ impl Frame {
         wrap::wrap(text, width, &mut self.widthdb)
     }
 
-    pub fn write(&mut self, pos: Pos, content: &str, style: ContentStyle) {
-        self.buffer.write(&mut self.widthdb, pos, content, style);
+    pub fn write<S: Into<Styled>>(&mut self, pos: Pos, styled: S) {
+        self.buffer.write(&mut self.widthdb, pos, &styled.into());
     }
 }
