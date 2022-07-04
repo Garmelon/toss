@@ -1,3 +1,5 @@
+use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+
 use crossterm::style::ContentStyle;
 
 use crate::styled::Styled;
@@ -11,10 +13,41 @@ pub struct Size {
 }
 
 impl Size {
-    pub const ZERO: Self = Self {
-        width: 0,
-        height: 0,
-    };
+    pub const ZERO: Self = Self::new(0, 0);
+
+    pub const fn new(width: u16, height: u16) -> Self {
+        Self { width, height }
+    }
+}
+
+impl Add for Size {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.width + rhs.width, self.height + rhs.height)
+    }
+}
+
+impl AddAssign for Size {
+    fn add_assign(&mut self, rhs: Self) {
+        self.width += rhs.width;
+        self.height += rhs.height;
+    }
+}
+
+impl Sub for Size {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        Self::new(self.width + rhs.width, self.height + rhs.height)
+    }
+}
+
+impl SubAssign for Size {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.width -= rhs.width;
+        self.height -= rhs.height;
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -24,10 +57,48 @@ pub struct Pos {
 }
 
 impl Pos {
-    pub const ZERO: Self = Self { x: 0, y: 0 };
+    pub const ZERO: Self = Self::new(0, 0);
 
-    pub fn new(x: i32, y: i32) -> Self {
+    pub const fn new(x: i32, y: i32) -> Self {
         Self { x, y }
+    }
+}
+
+impl Add for Pos {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self {
+        Self::new(self.x + rhs.x, self.y + rhs.y)
+    }
+}
+
+impl AddAssign for Pos {
+    fn add_assign(&mut self, rhs: Self) {
+        self.x += rhs.x;
+        self.y += rhs.y;
+    }
+}
+
+impl Sub for Pos {
+    type Output = Self;
+
+    fn sub(self, rhs: Self) -> Self {
+        Self::new(self.x - rhs.x, self.y - rhs.y)
+    }
+}
+
+impl SubAssign for Pos {
+    fn sub_assign(&mut self, rhs: Self) {
+        self.x -= rhs.x;
+        self.y -= rhs.y;
+    }
+}
+
+impl Neg for Pos {
+    type Output = Self;
+
+    fn neg(self) -> Self {
+        Self::new(-self.x, -self.y)
     }
 }
 
