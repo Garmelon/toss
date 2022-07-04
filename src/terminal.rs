@@ -59,6 +59,14 @@ impl Terminal {
         Ok(())
     }
 
+    pub fn set_tab_width(&mut self, tab_width: u8) {
+        self.frame.tab_width = tab_width;
+    }
+
+    pub fn tab_width(&self) -> u8 {
+        self.frame.tab_width
+    }
+
     pub fn set_measuring(&mut self, active: bool) {
         self.frame.widthdb.active = active;
     }

@@ -14,7 +14,20 @@ fn draw(f: &mut Frame) {
         "This\u{00a0}sentence\u{00a0}is\u{00a0}separated\u{00a0}by\u{00a0}non-\u{2060}breaking\u{00a0}spaces.\n",
         "\n",
         "It can also properly handle wide graphemes (like emoji 🤔), ",
-        "including ones usually displayed incorrectly by terminal emulators, like 👩‍🔬 (a female scientist emoji).",
+        "including ones usually displayed incorrectly by terminal emulators, like 👩‍🔬 (a female scientist emoji).\n",
+        "\n",
+        "Finally, tabs are supported as well. ",
+        "The following text is rendered with a tab width of 4:\n",
+        "\tx\n",
+        "1\tx\n",
+        "12\tx\n",
+        "123\tx\n",
+        "1234\tx\n",
+        "12345\tx\n",
+        "123456\tx\n",
+        "1234567\tx\n",
+        "12345678\tx\n",
+        "123456789\tx\n",
     );
 
     let breaks = f.wrap(text, f.size().width.into());
@@ -46,6 +59,7 @@ fn main() {
     // Automatically enters alternate screen and enables raw mode
     let mut term = Terminal::new().unwrap();
     term.set_measuring(true);
+    term.set_tab_width(4);
 
     loop {
         // Render and display a frame. A full frame is displayed on the terminal

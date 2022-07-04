@@ -1,18 +1,28 @@
 //! Rendering the next frame.
 
-use crossterm::style::ContentStyle;
-
 use crate::buffer::Buffer;
 pub use crate::buffer::{Pos, Size};
 use crate::styled::Styled;
 use crate::widthdb::WidthDB;
 use crate::wrap;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Frame {
     pub(crate) widthdb: WidthDB,
     pub(crate) buffer: Buffer,
     cursor: Option<Pos>,
+    pub(crate) tab_width: u8,
+}
+
+impl Default for Frame {
+    fn default() -> Self {
+        Self {
+            widthdb: Default::default(),
+            buffer: Default::default(),
+            cursor: None,
+            tab_width: 8,
+        }
+    }
 }
 
 impl Frame {
@@ -58,10 +68,11 @@ impl Frame {
     }
 
     pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
-        wrap::wrap(text, width, &mut self.widthdb)
+        wrap::wrap(&mut self.widthdb, self.tab_width, text, width)
     }
 
     pub fn write<S: Into<Styled>>(&mut self, pos: Pos, styled: S) {
-        self.buffer.write(&mut self.widthdb, pos, &styled.into());
+        self.buffer
+            .write(&mut self.widthdb, self.tab_width, pos, &styled.into());
     }
 }

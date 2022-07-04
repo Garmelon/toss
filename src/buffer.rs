@@ -1,8 +1,8 @@
 use crossterm::style::ContentStyle;
-use unicode_segmentation::UnicodeSegmentation;
 
 use crate::styled::Styled;
 use crate::widthdb::WidthDB;
+use crate::wrap;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {
@@ -128,25 +128,31 @@ impl Buffer {
         }
     }
 
-    pub fn write(&mut self, widthdb: &mut WidthDB, mut pos: Pos, styled: &Styled) {
+    pub fn write(&mut self, widthdb: &mut WidthDB, tab_width: u8, pos: Pos, styled: &Styled) {
         // If we're not even visible, there's nothing to do
         if pos.y < 0 || pos.y >= self.size.height as i32 {
             return;
         }
         let y = pos.y as u16;
 
+        let mut col: usize = 0;
         for styled_grapheme in styled.styled_graphemes() {
-            let width = widthdb.grapheme_width(styled_grapheme.content());
-            if width > 0 {
-                self.write_grapheme(
-                    pos.x,
-                    y,
-                    width,
-                    styled_grapheme.content(),
-                    *styled_grapheme.style(),
-                );
+            let x = pos.x + col as i32;
+            let g = *styled_grapheme.content();
+            let style = *styled_grapheme.style();
+            if g == "\t" {
+                let width = wrap::tab_width_at_column(tab_width, col);
+                col += width as usize;
+                for dx in 0..width {
+                    self.write_grapheme(x + dx as i32, y, width, " ", style);
+                }
+            } else {
+                let width = widthdb.grapheme_width(g);
+                col += width as usize;
+                if width > 0 {
+                    self.write_grapheme(x, y, width, g, style);
+                }
             }
-            pos.x += width as i32;
         }
     }
 
