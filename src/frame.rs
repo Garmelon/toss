@@ -67,6 +67,10 @@ impl Frame {
         self.widthdb.width(s)
     }
 
+    pub fn tab_width_at_column(&self, col: usize) -> u8 {
+        wrap::tab_width_at_column(self.tab_width, col)
+    }
+
     pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
         wrap::wrap(&mut self.widthdb, self.tab_width, text, width)
     }
