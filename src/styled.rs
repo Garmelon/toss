@@ -15,6 +15,14 @@ impl Chunk {
         }
     }
 
+    pub fn string(&self) -> &str {
+        &self.string
+    }
+
+    pub fn style(&self) -> ContentStyle {
+        self.style
+    }
+
     pub fn plain<S: ToString>(string: S) -> Self {
         Self::new(string, ContentStyle::default())
     }
@@ -79,6 +87,10 @@ impl Styled {
     pub fn and_then(mut self, other: Styled) -> Self {
         self.0.extend(other.0);
         self
+    }
+
+    pub fn chunks(&self) -> &[Chunk] {
+        &self.0
     }
 
     pub fn text(&self) -> String {
