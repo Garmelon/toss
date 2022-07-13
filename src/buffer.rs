@@ -1,4 +1,4 @@
-use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Neg, Range, Sub, SubAssign};
 
 use crossterm::style::ContentStyle;
 
@@ -64,6 +64,12 @@ impl Pos {
     }
 }
 
+impl From<Size> for Pos {
+    fn from(s: Size) -> Self {
+        Self::new(s.width.into(), s.height.into())
+    }
+}
+
 impl Add for Pos {
     type Output = Self;
 
@@ -72,10 +78,25 @@ impl Add for Pos {
     }
 }
 
+impl Add<Size> for Pos {
+    type Output = Self;
+
+    fn add(self, rhs: Size) -> Self {
+        Self::new(self.x + rhs.width as i32, self.y + rhs.height as i32)
+    }
+}
+
 impl AddAssign for Pos {
     fn add_assign(&mut self, rhs: Self) {
         self.x += rhs.x;
         self.y += rhs.y;
+    }
+}
+
+impl AddAssign<Size> for Pos {
+    fn add_assign(&mut self, rhs: Size) {
+        self.x += rhs.width as i32;
+        self.y += rhs.height as i32;
     }
 }
 
@@ -87,10 +108,25 @@ impl Sub for Pos {
     }
 }
 
+impl Sub<Size> for Pos {
+    type Output = Self;
+
+    fn sub(self, rhs: Size) -> Self {
+        Self::new(self.x - rhs.width as i32, self.y - rhs.height as i32)
+    }
+}
+
 impl SubAssign for Pos {
     fn sub_assign(&mut self, rhs: Self) {
         self.x -= rhs.x;
         self.y -= rhs.y;
+    }
+}
+
+impl SubAssign<Size> for Pos {
+    fn sub_assign(&mut self, rhs: Size) {
+        self.x -= rhs.width as i32;
+        self.y -= rhs.height as i32;
     }
 }
 
@@ -125,9 +161,17 @@ impl Default for Cell {
 pub struct Buffer {
     size: Size,
     data: Vec<Cell>,
+    /// A stack of rectangular drawing areas.
+    ///
+    /// When rendering to the buffer with a nonempty stack, it behaves as if it
+    /// was the size of the topmost stack element, and characters are translated
+    /// by the position of the topmost stack element. No characters can be
+    /// placed outside the area described by the topmost stack element.
+    stack: Vec<(Pos, Size)>,
 }
 
 impl Buffer {
+    /// Ignores the stack.
     fn index(&self, x: u16, y: u16) -> usize {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
@@ -139,6 +183,7 @@ impl Buffer {
         y * width + x
     }
 
+    /// Ignores the stack.
     pub(crate) fn at(&self, x: u16, y: u16) -> &Cell {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
@@ -146,6 +191,7 @@ impl Buffer {
         &self.data[i]
     }
 
+    /// Ignores the stack.
     fn at_mut(&mut self, x: u16, y: u16) -> &mut Cell {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
@@ -153,16 +199,41 @@ impl Buffer {
         &mut self.data[i]
     }
 
+    pub fn push(&mut self, pos: Pos, size: Size) {
+        let cur_pos = self.stack.last().map(|(p, _)| *p).unwrap_or(Pos::ZERO);
+        self.stack.push((cur_pos + pos, size));
+    }
+
+    pub fn pop(&mut self) {
+        self.stack.pop();
+    }
+
+    fn drawable_area(&self) -> (Pos, Size) {
+        self.stack.last().copied().unwrap_or((Pos::ZERO, self.size))
+    }
+
+    /// Size of the currently drawable area.
     pub fn size(&self) -> Size {
-        self.size
+        self.drawable_area().1
+    }
+
+    /// Min (inclusive) and max (not inclusive) coordinates of the currently
+    /// drawable area.
+    fn legal_ranges(&self) -> (Range<i32>, Range<i32>) {
+        let (top_left, size) = self.drawable_area();
+        let min_x = top_left.x.max(0);
+        let min_y = top_left.y.max(0);
+        let max_x = (top_left.x + size.width as i32).min(self.size.width as i32);
+        let max_y = (top_left.y + size.height as i32).min(self.size.height as i32);
+        (min_x..max_x, min_y..max_y)
     }
 
     /// Resize the buffer and reset its contents.
     ///
     /// The buffer's contents are reset even if the buffer is already the
-    /// correct size.
+    /// correct size. The stack is reset as well.
     pub fn resize(&mut self, size: Size) {
-        if size == self.size() {
+        if size == self.size {
             self.data.fill_with(Cell::default);
         } else {
             let width: usize = size.width.into();
@@ -173,13 +244,16 @@ impl Buffer {
             self.data.clear();
             self.data.resize_with(len, Cell::default);
         }
+
+        self.stack.clear();
     }
 
-    /// Reset the contents of the buffer.
+    /// Reset the contents and stack of the buffer.
     ///
     /// `buf.reset()` is equivalent to `buf.resize(buf.size())`.
     pub fn reset(&mut self) {
         self.data.fill_with(Cell::default);
+        self.stack.clear();
     }
 
     /// Remove the grapheme at the specified coordinates from the buffer.
@@ -187,6 +261,8 @@ impl Buffer {
     /// Removes the entire grapheme, not just the cell at the coordinates.
     /// Preserves the style of the affected cells. Works even if the coordinates
     /// don't point to the beginning of the grapheme.
+    ///
+    /// Ignores the stack.
     fn erase(&mut self, x: u16, y: u16) {
         let cell = self.at(x, y);
         let width: u16 = cell.width.into();
@@ -200,8 +276,10 @@ impl Buffer {
     }
 
     pub fn write(&mut self, widthdb: &mut WidthDB, tab_width: u8, pos: Pos, styled: &Styled) {
+        let pos = self.drawable_area().0 + pos;
+        let (xrange, yrange) = self.legal_ranges();
         // If we're not even visible, there's nothing to do
-        if pos.y < 0 || pos.y >= self.size.height as i32 {
+        if !yrange.contains(&pos.y) {
             return;
         }
         let y = pos.y as u16;
@@ -215,22 +293,30 @@ impl Buffer {
                 let width = wrap::tab_width_at_column(tab_width, col);
                 col += width as usize;
                 for dx in 0..width {
-                    self.write_grapheme(x + dx as i32, y, width, " ", style);
+                    self.write_grapheme(&xrange, x + dx as i32, y, width, " ", style);
                 }
             } else {
                 let width = widthdb.grapheme_width(g);
                 col += width as usize;
                 if width > 0 {
-                    self.write_grapheme(x, y, width, g, style);
+                    self.write_grapheme(&xrange, x, y, width, g, style);
                 }
             }
         }
     }
 
     /// Assumes that `pos.y` is in range.
-    fn write_grapheme(&mut self, x: i32, y: u16, width: u8, grapheme: &str, style: ContentStyle) {
-        let min_x = 0;
-        let max_x = self.size.width as i32 - 1; // Last possible cell
+    fn write_grapheme(
+        &mut self,
+        xrange: &Range<i32>,
+        x: i32,
+        y: u16,
+        width: u8,
+        grapheme: &str,
+        style: ContentStyle,
+    ) {
+        let min_x = xrange.start;
+        let max_x = xrange.end - 1; // Last possible cell
 
         let start_x = x;
         let end_x = x + width as i32 - 1; // Coordinate of last cell

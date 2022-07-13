@@ -26,6 +26,14 @@ impl Default for Frame {
 }
 
 impl Frame {
+    pub fn push(&mut self, pos: Pos, size: Size) {
+        self.buffer.push(pos, size);
+    }
+
+    pub fn pop(&mut self) {
+        self.buffer.pop();
+    }
+
     pub fn size(&self) -> Size {
         self.buffer.size()
     }
