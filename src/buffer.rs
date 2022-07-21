@@ -39,7 +39,7 @@ impl Sub for Size {
     type Output = Self;
 
     fn sub(self, rhs: Self) -> Self {
-        Self::new(self.width + rhs.width, self.height + rhs.height)
+        Self::new(self.width - rhs.width, self.height - rhs.height)
     }
 }
 
