@@ -184,7 +184,7 @@ impl Buffer {
     }
 
     /// Ignores the stack.
-    pub(crate) fn at(&self, x: u16, y: u16) -> &Cell {
+    pub fn at(&self, x: u16, y: u16) -> &Cell {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
         let i = self.index(x, y);
@@ -206,6 +206,14 @@ impl Buffer {
 
     pub fn pop(&mut self) {
         self.stack.pop();
+    }
+
+    pub fn local_to_global(&self, pos: Pos) -> Pos {
+        pos + self.stack.last().map(|(p, _)| *p).unwrap_or(Pos::ZERO)
+    }
+
+    pub fn global_to_local(&self, pos: Pos) -> Pos {
+        pos - self.stack.last().map(|(p, _)| *p).unwrap_or(Pos::ZERO)
     }
 
     fn drawable_area(&self) -> (Pos, Size) {
