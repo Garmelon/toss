@@ -35,7 +35,7 @@ impl Frame {
     }
 
     pub fn size(&self) -> Size {
-        self.buffer.size()
+        self.buffer.current_frame().size
     }
 
     pub fn reset(&mut self) {
@@ -44,11 +44,12 @@ impl Frame {
     }
 
     pub fn cursor(&self) -> Option<Pos> {
-        self.cursor.map(|p| self.buffer.global_to_local(p))
+        self.cursor
+            .map(|p| self.buffer.current_frame().global_to_local(p))
     }
 
     pub fn set_cursor(&mut self, pos: Option<Pos>) {
-        self.cursor = pos.map(|p| self.buffer.local_to_global(p));
+        self.cursor = pos.map(|p| self.buffer.current_frame().local_to_global(p));
     }
 
     pub fn show_cursor(&mut self, pos: Pos) {

@@ -157,6 +157,73 @@ impl Default for Cell {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct StackFrame {
+    pub pos: Pos,
+    pub size: Size,
+    pub drawable_area: Option<(Pos, Size)>,
+}
+
+impl StackFrame {
+    fn intersect_areas(
+        a_start: Pos,
+        a_size: Size,
+        b_start: Pos,
+        b_size: Size,
+    ) -> Option<(Pos, Size)> {
+        // The first row/column that is not part of the area any more
+        let a_end = a_start + a_size;
+        let b_end = b_start + b_size;
+
+        let x_start = a_start.x.max(b_start.x);
+        let x_end = a_end.x.min(b_end.x);
+        let y_start = a_start.y.max(b_start.y);
+        let y_end = a_end.y.min(b_end.y);
+
+        if x_start < x_end && y_start < y_end {
+            let start = Pos::new(x_start, y_start);
+            let size = Size::new((x_end - x_start) as u16, (y_end - y_start) as u16);
+            Some((start, size))
+        } else {
+            None
+        }
+    }
+
+    pub fn then(&self, pos: Pos, size: Size) -> Self {
+        let pos = self.local_to_global(pos);
+
+        let drawable_area = self
+            .drawable_area
+            .and_then(|(da_pos, da_size)| Self::intersect_areas(da_pos, da_size, pos, size));
+
+        StackFrame {
+            pos,
+            size,
+            drawable_area,
+        }
+    }
+
+    pub fn local_to_global(&self, local_pos: Pos) -> Pos {
+        local_pos + self.pos
+    }
+
+    pub fn global_to_local(&self, global_pos: Pos) -> Pos {
+        global_pos - self.pos
+    }
+
+    /// Ranges along the x and y axis where drawing is allowed, in global
+    /// coordinates.
+    pub fn legal_ranges(&self) -> Option<(Range<i32>, Range<i32>)> {
+        if let Some((pos, size)) = self.drawable_area {
+            let xrange = pos.x..pos.x + size.width as i32;
+            let yrange = pos.y..pos.y + size.height as i32;
+            Some((xrange, yrange))
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct Buffer {
     size: Size,
@@ -167,7 +234,7 @@ pub struct Buffer {
     /// was the size of the topmost stack element, and characters are translated
     /// by the position of the topmost stack element. No characters can be
     /// placed outside the area described by the topmost stack element.
-    stack: Vec<(Pos, Size)>,
+    stack: Vec<StackFrame>,
 }
 
 impl Buffer {
@@ -187,6 +254,7 @@ impl Buffer {
     pub fn at(&self, x: u16, y: u16) -> &Cell {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
+
         let i = self.index(x, y);
         &self.data[i]
     }
@@ -195,45 +263,25 @@ impl Buffer {
     fn at_mut(&mut self, x: u16, y: u16) -> &mut Cell {
         assert!(x < self.size.width);
         assert!(y < self.size.height);
+
         let i = self.index(x, y);
         &mut self.data[i]
     }
 
+    pub fn current_frame(&self) -> StackFrame {
+        self.stack.last().copied().unwrap_or(StackFrame {
+            pos: Pos::ZERO,
+            size: self.size,
+            drawable_area: Some((Pos::ZERO, self.size)),
+        })
+    }
+
     pub fn push(&mut self, pos: Pos, size: Size) {
-        let cur_pos = self.stack.last().map(|(p, _)| *p).unwrap_or(Pos::ZERO);
-        self.stack.push((cur_pos + pos, size));
+        self.stack.push(self.current_frame().then(pos, size));
     }
 
     pub fn pop(&mut self) {
         self.stack.pop();
-    }
-
-    pub fn local_to_global(&self, pos: Pos) -> Pos {
-        pos + self.stack.last().map(|(p, _)| *p).unwrap_or(Pos::ZERO)
-    }
-
-    pub fn global_to_local(&self, pos: Pos) -> Pos {
-        pos - self.stack.last().map(|(p, _)| *p).unwrap_or(Pos::ZERO)
-    }
-
-    fn drawable_area(&self) -> (Pos, Size) {
-        self.stack.last().copied().unwrap_or((Pos::ZERO, self.size))
-    }
-
-    /// Size of the currently drawable area.
-    pub fn size(&self) -> Size {
-        self.drawable_area().1
-    }
-
-    /// Min (inclusive) and max (not inclusive) coordinates of the currently
-    /// drawable area.
-    fn legal_ranges(&self) -> (Range<i32>, Range<i32>) {
-        let (top_left, size) = self.drawable_area();
-        let min_x = top_left.x.max(0);
-        let min_y = top_left.y.max(0);
-        let max_x = (top_left.x + size.width as i32).min(self.size.width as i32);
-        let max_y = (top_left.y + size.height as i32).min(self.size.height as i32);
-        (min_x..max_x, min_y..max_y)
     }
 
     /// Resize the buffer and reset its contents.
@@ -284,11 +332,14 @@ impl Buffer {
     }
 
     pub fn write(&mut self, widthdb: &mut WidthDB, tab_width: u8, pos: Pos, styled: &Styled) {
-        let pos = self.drawable_area().0 + pos;
-        let (xrange, yrange) = self.legal_ranges();
-        // If we're not even visible, there's nothing to do
+        let frame = self.current_frame();
+        let (xrange, yrange) = match frame.legal_ranges() {
+            Some(ranges) => ranges,
+            None => return, // No drawable area
+        };
+        let pos = frame.local_to_global(pos);
         if !yrange.contains(&pos.y) {
-            return;
+            return; // Outside of drawable area
         }
         let y = pos.y as u16;
 
