@@ -1,147 +1,81 @@
+use std::iter::Peekable;
+use std::{slice, vec};
+
 use crossterm::style::{ContentStyle, StyledContent};
-use unicode_segmentation::UnicodeSegmentation;
-
-#[derive(Debug, Clone)]
-pub struct Chunk {
-    string: String,
-    style: ContentStyle,
-}
-
-impl Chunk {
-    pub fn new<S: ToString>(string: S, style: ContentStyle) -> Self {
-        Self {
-            string: string.to_string(),
-            style,
-        }
-    }
-
-    pub fn string(&self) -> &str {
-        &self.string
-    }
-
-    pub fn style(&self) -> ContentStyle {
-        self.style
-    }
-
-    pub fn plain<S: ToString>(string: S) -> Self {
-        Self::new(string, ContentStyle::default())
-    }
-
-    pub fn split_at(&self, mid: usize) -> (Self, Self) {
-        let (lstr, rstr) = self.string.split_at(mid);
-        let left = Self {
-            string: lstr.to_string(),
-            style: self.style,
-        };
-        let right = Self {
-            string: rstr.to_string(),
-            style: self.style,
-        };
-        (left, right)
-    }
-}
-
-impl From<&str> for Chunk {
-    fn from(str: &str) -> Self {
-        Self::plain(str)
-    }
-}
-
-impl From<String> for Chunk {
-    fn from(string: String) -> Self {
-        Self::plain(string)
-    }
-}
-
-impl From<&String> for Chunk {
-    fn from(string: &String) -> Self {
-        Self::plain(string)
-    }
-}
-
-impl<S: ToString> From<(S,)> for Chunk {
-    fn from(tuple: (S,)) -> Self {
-        Self::plain(tuple.0)
-    }
-}
-
-impl<S: ToString> From<(S, ContentStyle)> for Chunk {
-    fn from(tuple: (S, ContentStyle)) -> Self {
-        Self::new(tuple.0, tuple.1)
-    }
-}
+use unicode_segmentation::{GraphemeIndices, Graphemes, UnicodeSegmentation};
 
 #[derive(Debug, Default, Clone)]
-pub struct Styled(Vec<Chunk>);
+pub struct Styled {
+    text: String,
+    /// List of `(style, until)` tuples. The style should be applied to all
+    /// chars in the range `prev_until..until`.
+    styles: Vec<(ContentStyle, usize)>,
+}
 
 impl Styled {
-    pub fn new<C: Into<Chunk>>(chunk: C) -> Self {
-        Self::default().then(chunk)
+    pub fn new<S: AsRef<str>>(text: S, style: ContentStyle) -> Self {
+        Self::default().then(text, style)
     }
 
-    pub fn then<C: Into<Chunk>>(mut self, chunk: C) -> Self {
-        self.0.push(chunk.into());
+    pub fn new_plain<S: AsRef<str>>(text: S) -> Self {
+        Self::default().then_plain(text)
+    }
+
+    pub fn then<S: AsRef<str>>(mut self, text: S, style: ContentStyle) -> Self {
+        let text = text.as_ref();
+        if !text.is_empty() {
+            self.text.push_str(text);
+            self.styles.push((style, self.text.len()));
+        }
         self
     }
 
-    pub fn and_then(mut self, other: Styled) -> Self {
-        self.0.extend(other.0);
+    pub fn then_plain<S: AsRef<str>>(self, text: S) -> Self {
+        self.then(text, ContentStyle::default())
+    }
+
+    pub fn and_then(mut self, mut other: Styled) -> Self {
+        let delta = self.text.len();
+        for (_, until) in &mut other.styles {
+            *until += delta;
+        }
+
+        self.text.push_str(&other.text);
+        self.styles.extend(other.styles);
         self
     }
 
-    pub fn chunks(&self) -> &[Chunk] {
-        &self.0
-    }
-
-    pub fn text(&self) -> String {
-        self.0.iter().flat_map(|c| c.string.chars()).collect()
-    }
-
-    pub fn graphemes(&self) -> impl Iterator<Item = &str> {
-        self.0.iter().flat_map(|c| c.string.graphemes(true))
-    }
-
-    pub fn grapheme_indices(&self) -> impl Iterator<Item = (usize, &str)> {
-        self.0
-            .iter()
-            .scan(0, |s, c| {
-                let offset = *s;
-                *s += c.string.len();
-                Some((offset, c))
-            })
-            .flat_map(|(o, c)| {
-                c.string
-                    .grapheme_indices(true)
-                    .map(move |(gi, g)| (o + gi, g))
-            })
-    }
-
-    pub fn styled_graphemes(&self) -> impl Iterator<Item = StyledContent<&str>> {
-        self.0.iter().flat_map(|c| {
-            c.string
-                .graphemes(true)
-                .map(|g| StyledContent::new(c.style, g))
-        })
+    pub fn text(&self) -> &str {
+        &self.text
     }
 
     pub fn split_at(self, mid: usize) -> (Self, Self) {
-        let mut left = vec![];
-        let mut right = vec![];
-        let mut offset = 0;
-        for chunk in self.0 {
-            let len = chunk.string.len();
-            if offset >= mid {
-                right.push(chunk);
-            } else if offset + len > mid {
-                let (lchunk, rchunk) = chunk.split_at(mid - offset);
-                left.push(lchunk);
-                right.push(rchunk);
-            } else {
-                left.push(chunk);
+        let (left_text, right_text) = self.text.split_at(mid);
+
+        let mut left_styles = vec![];
+        let mut right_styles = vec![];
+        let mut from = 0;
+        for (style, until) in self.styles {
+            if from < mid {
+                left_styles.push((style, until.max(mid)));
             }
-            offset += len;
+            if mid < until {
+                right_styles.push((style, until.saturating_sub(mid)));
+            }
+            from = until;
         }
-        (Self(left), Self(right))
+
+        let left = Self {
+            text: left_text.to_string(),
+            styles: left_styles,
+        };
+
+        let right = Self {
+            text: right_text.to_string(),
+            styles: right_styles,
+        };
+
+        (left, right)
     }
 
     pub fn split_at_indices(self, indices: &[usize]) -> Vec<Self> {
@@ -163,20 +97,98 @@ impl Styled {
     }
 
     pub fn trim_end(&mut self) {
-        while let Some(last) = self.0.last_mut() {
-            let trimmed = last.string.trim_end();
-            if trimmed.is_empty() {
-                self.0.pop();
-            } else {
-                last.string = trimmed.to_string();
+        self.text = self.text.trim_end().to_string();
+
+        let text_len = self.text.len();
+        let mut styles_len = 0;
+        for (_, until) in &mut self.styles {
+            styles_len += 1;
+            if *until >= text_len {
+                *until = text_len;
                 break;
             }
+        }
+
+        while self.styles.len() > styles_len {
+            self.styles.pop();
         }
     }
 }
 
-impl<C: Into<Chunk>> From<C> for Styled {
-    fn from(chunk: C) -> Self {
-        Self::new(chunk)
+//////////////////////////////
+// Iterating over graphemes //
+//////////////////////////////
+
+pub struct StyledGraphemeIndices<'a> {
+    text: GraphemeIndices<'a>,
+    styles: Peekable<slice::Iter<'a, (ContentStyle, usize)>>,
+}
+
+impl<'a> Iterator for StyledGraphemeIndices<'a> {
+    type Item = (usize, StyledContent<&'a str>);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let (gi, grapheme) = self.text.next()?;
+        let (mut style, mut until) = **self.styles.peek().expect("styles cover entire text");
+        while gi >= until {
+            self.styles.next();
+            (style, until) = **self.styles.peek().expect("styles cover entire text");
+        }
+        Some((gi, StyledContent::new(style, grapheme)))
+    }
+}
+
+impl Styled {
+    pub fn graphemes(&self) -> Graphemes<'_> {
+        self.text.graphemes(true)
+    }
+
+    pub fn grapheme_indices(&self) -> GraphemeIndices<'_> {
+        self.text.grapheme_indices(true)
+    }
+
+    pub fn styled_grapheme_indices(&self) -> StyledGraphemeIndices<'_> {
+        StyledGraphemeIndices {
+            text: self.grapheme_indices(),
+            styles: self.styles.iter().peekable(),
+        }
+    }
+}
+
+//////////////////////////
+// Converting to Styled //
+//////////////////////////
+
+impl From<&str> for Styled {
+    fn from(text: &str) -> Self {
+        Self::new_plain(text)
+    }
+}
+
+impl From<String> for Styled {
+    fn from(text: String) -> Self {
+        Self::new_plain(&text)
+    }
+}
+
+impl<S: AsRef<str>> From<(S,)> for Styled {
+    fn from((text,): (S,)) -> Self {
+        Self::new_plain(text)
+    }
+}
+
+impl<S: AsRef<str>> From<(S, ContentStyle)> for Styled {
+    fn from((text, style): (S, ContentStyle)) -> Self {
+        Self::new(text, style)
+    }
+}
+
+impl<S: AsRef<str>> From<&[(S, ContentStyle)]> for Styled {
+    fn from(segments: &[(S, ContentStyle)]) -> Self {
+        let mut result = Self::default();
+        for (text, style) in segments {
+            result = result.then(text, *style);
+        }
+        result
     }
 }

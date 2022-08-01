@@ -76,15 +76,6 @@ impl Frame {
         self.widthdb.width(s)
     }
 
-    /// Like [`Self::width`] for [`Styled`].
-    pub fn width_styled(&mut self, s: &Styled) -> usize {
-        let mut total: usize = 0;
-        for grapheme in s.graphemes() {
-            total += self.widthdb.grapheme_width(grapheme) as usize;
-        }
-        total
-    }
-
     pub fn tab_width_at_column(&self, col: usize) -> u8 {
         wrap::tab_width_at_column(self.tab_width, col)
     }

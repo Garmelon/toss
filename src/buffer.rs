@@ -344,7 +344,7 @@ impl Buffer {
         let y = pos.y as u16;
 
         let mut col: usize = 0;
-        for styled_grapheme in styled.styled_graphemes() {
+        for (_, styled_grapheme) in styled.styled_grapheme_indices() {
             let x = pos.x + col as i32;
             let g = *styled_grapheme.content();
             let style = *styled_grapheme.style();

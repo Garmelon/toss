@@ -31,7 +31,7 @@ fn draw(f: &mut Frame) {
     );
 
     let breaks = f.wrap(text, f.size().width.into());
-    let lines = Styled::default().then(text).split_at_indices(&breaks);
+    let lines = Styled::new_plain(text).split_at_indices(&breaks);
     for (i, mut line) in lines.into_iter().enumerate() {
         line.trim_end();
         f.write(Pos::new(0, i as i32), line);
