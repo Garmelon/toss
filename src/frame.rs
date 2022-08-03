@@ -6,23 +6,11 @@ use crate::styled::Styled;
 use crate::widthdb::WidthDB;
 use crate::wrap;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Frame {
     pub(crate) widthdb: WidthDB,
     pub(crate) buffer: Buffer,
     cursor: Option<Pos>,
-    pub(crate) tab_width: u8,
-}
-
-impl Default for Frame {
-    fn default() -> Self {
-        Self {
-            widthdb: Default::default(),
-            buffer: Default::default(),
-            cursor: None,
-            tab_width: 8,
-        }
-    }
 }
 
 impl Frame {
@@ -62,13 +50,17 @@ impl Frame {
 
     /// Determine the width of a grapheme.
     ///
+    /// If the grapheme is a tab, the column is used to determine its width.
+    ///
     /// If the width has not been measured yet, it is estimated using the
     /// Unicode Standard Annex #11.
-    pub fn grapheme_width(&mut self, grapheme: &str) -> u8 {
-        self.widthdb.grapheme_width(grapheme)
+    pub fn grapheme_width(&mut self, grapheme: &str, col: usize) -> u8 {
+        self.widthdb.grapheme_width(grapheme, col)
     }
 
     /// Determine the width of a string based on its graphemes.
+    ///
+    /// If a grapheme is a tab, its column is used to determine its width.
     ///
     /// If the width of a grapheme has not been measured yet, it is estimated
     /// using the Unicode Standard Annex #11.
@@ -76,16 +68,11 @@ impl Frame {
         self.widthdb.width(s)
     }
 
-    pub fn tab_width_at_column(&self, col: usize) -> u8 {
-        wrap::tab_width_at_column(self.tab_width, col)
-    }
-
     pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
-        wrap::wrap(&mut self.widthdb, self.tab_width, text, width)
+        wrap::wrap(&mut self.widthdb, text, width)
     }
 
     pub fn write<S: Into<Styled>>(&mut self, pos: Pos, styled: S) {
-        self.buffer
-            .write(&mut self.widthdb, self.tab_width, pos, &styled.into());
+        self.buffer.write(&mut self.widthdb, pos, &styled.into());
     }
 }

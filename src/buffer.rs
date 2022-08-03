@@ -4,7 +4,6 @@ use crossterm::style::ContentStyle;
 
 use crate::styled::Styled;
 use crate::widthdb::WidthDB;
-use crate::wrap;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {
@@ -331,7 +330,7 @@ impl Buffer {
         }
     }
 
-    pub fn write(&mut self, widthdb: &mut WidthDB, tab_width: u8, pos: Pos, styled: &Styled) {
+    pub fn write(&mut self, widthdb: &mut WidthDB, pos: Pos, styled: &Styled) {
         let frame = self.current_frame();
         let (xrange, yrange) = match frame.legal_ranges() {
             Some(ranges) => ranges,
@@ -348,18 +347,14 @@ impl Buffer {
             let x = pos.x + col as i32;
             let g = *styled_grapheme.content();
             let style = *styled_grapheme.style();
+            let width = widthdb.grapheme_width(g, col);
+            col += width as usize;
             if g == "\t" {
-                let width = wrap::tab_width_at_column(tab_width, col);
-                col += width as usize;
                 for dx in 0..width {
                     self.write_grapheme(&xrange, x + dx as i32, y, width, " ", style);
                 }
-            } else {
-                let width = widthdb.grapheme_width(g);
-                col += width as usize;
-                if width > 0 {
-                    self.write_grapheme(&xrange, x, y, width, g, style);
-                }
+            } else if width > 0 {
+                self.write_grapheme(&xrange, x, y, width, g, style);
             }
         }
     }

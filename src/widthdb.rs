@@ -9,20 +9,42 @@ use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
 /// Measures and stores the with (in terminal coordinates) of graphemes.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct WidthDB {
     pub active: bool,
     known: HashMap<String, u8>,
     requested: HashSet<String>,
+    pub(crate) tab_width: u8,
+}
+
+impl Default for WidthDB {
+    fn default() -> Self {
+        Self {
+            active: false,
+            known: Default::default(),
+            requested: Default::default(),
+            tab_width: 8,
+        }
+    }
 }
 
 impl WidthDB {
+    /// Determine the width of a tab character starting at the specified column.
+    fn tab_width_at_column(&self, col: usize) -> u8 {
+        self.tab_width - (col % self.tab_width as usize) as u8
+    }
+
     /// Determine the width of a grapheme.
+    ///
+    /// If the grapheme is a tab, the column is used to determine its width.
     ///
     /// If the width has not been measured yet, it is estimated using the
     /// Unicode Standard Annex #11.
-    pub fn grapheme_width(&mut self, grapheme: &str) -> u8 {
+    pub fn grapheme_width(&mut self, grapheme: &str, col: usize) -> u8 {
         assert_eq!(Some(grapheme), grapheme.graphemes(true).next());
+        if grapheme == "\t" {
+            return self.tab_width_at_column(col);
+        }
         if !self.active {
             return grapheme.width() as u8;
         }
@@ -36,20 +58,14 @@ impl WidthDB {
 
     /// Determine the width of a string based on its graphemes.
     ///
+    /// If a grapheme is a tab, its column is used to determine its width.
+    ///
     /// If the width of a grapheme has not been measured yet, it is estimated
     /// using the Unicode Standard Annex #11.
     pub fn width(&mut self, s: &str) -> usize {
-        if !self.active {
-            return s.width();
-        }
         let mut total: usize = 0;
         for grapheme in s.graphemes(true) {
-            total += if let Some(width) = self.known.get(grapheme) {
-                (*width).into()
-            } else {
-                self.requested.insert(grapheme.to_string());
-                grapheme.width()
-            };
+            total += self.grapheme_width(grapheme, total) as usize;
         }
         total
     }

@@ -5,11 +5,7 @@ use unicode_segmentation::UnicodeSegmentation;
 
 use crate::widthdb::WidthDB;
 
-pub fn tab_width_at_column(tab_width: u8, col: usize) -> u8 {
-    tab_width - (col % tab_width as usize) as u8
-}
-
-pub fn wrap(widthdb: &mut WidthDB, tab_width: u8, text: &str, width: usize) -> Vec<usize> {
+pub fn wrap(widthdb: &mut WidthDB, text: &str, width: usize) -> Vec<usize> {
     let mut breaks = vec![];
 
     let mut break_options = unicode_linebreak::linebreaks(text).peekable();
@@ -54,7 +50,7 @@ pub fn wrap(widthdb: &mut WidthDB, tab_width: u8, text: &str, width: usize) -> V
         // Calculate widths after current grapheme
         let g_is_whitespace = g.chars().all(|c| c.is_whitespace());
         let g_width = if g == "\t" {
-            tab_width_at_column(tab_width, current_width) as usize
+            widthdb.tab_width_at_column(current_width) as usize
         } else {
             widthdb.grapheme_width(g) as usize
         };

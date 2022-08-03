@@ -60,11 +60,11 @@ impl Terminal {
     }
 
     pub fn set_tab_width(&mut self, tab_width: u8) {
-        self.frame.tab_width = tab_width;
+        self.frame.widthdb.tab_width = tab_width;
     }
 
     pub fn tab_width(&self) -> u8 {
-        self.frame.tab_width
+        self.frame.widthdb.tab_width
     }
 
     pub fn set_measuring(&mut self, active: bool) {
