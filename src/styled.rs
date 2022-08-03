@@ -57,7 +57,7 @@ impl Styled {
         let mut from = 0;
         for (style, until) in self.styles {
             if from < mid {
-                left_styles.push((style, until.max(mid)));
+                left_styles.push((style, until.min(mid)));
             }
             if mid < until {
                 right_styles.push((style, until.saturating_sub(mid)));
