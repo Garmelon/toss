@@ -52,13 +52,15 @@ pub fn wrap(widthdb: &mut WidthDB, tab_width: u8, text: &str, width: usize) -> V
         }
 
         // Calculate widths after current grapheme
+        let g_is_whitespace = g.chars().all(|c| c.is_whitespace());
         let g_width = if g == "\t" {
             tab_width_at_column(tab_width, current_width) as usize
         } else {
             widthdb.grapheme_width(g) as usize
         };
+        let g_width_trimmed = if g_is_whitespace { 0 } else { g_width };
         let mut new_width = current_width + g_width;
-        let mut new_width_trimmed = if g.chars().all(|c| c.is_whitespace()) {
+        let mut new_width_trimmed = if g_is_whitespace {
             current_width_trimmed
         } else {
             new_width
@@ -87,8 +89,8 @@ pub fn wrap(widthdb: &mut WidthDB, tab_width: u8, text: &str, width: usize) -> V
                 // Forced break in the midde of a normally non-breakable chunk
                 // because there are no valid break points.
                 breaks.push(gi);
-                new_width = 0;
-                new_width_trimmed = 0;
+                new_width = g_width;
+                new_width_trimmed = g_width_trimmed;
                 valid_break = None;
                 valid_break_width = 0;
             }
