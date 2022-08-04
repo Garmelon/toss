@@ -351,7 +351,7 @@ impl Buffer {
             col += width as usize;
             if g == "\t" {
                 for dx in 0..width {
-                    self.write_grapheme(&xrange, x + dx as i32, y, width, " ", style);
+                    self.write_grapheme(&xrange, x + dx as i32, y, 1, " ", style);
                 }
             } else if width > 0 {
                 self.write_grapheme(&xrange, x, y, width, g, style);
