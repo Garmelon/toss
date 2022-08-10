@@ -4,6 +4,7 @@ use std::io::Write;
 use std::{io, mem};
 
 use crossterm::cursor::{Hide, MoveTo, Show};
+use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste};
 use crossterm::style::{PrintStyledContent, StyledContent};
 use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{ExecutableCommand, QueueableCommand};
@@ -48,6 +49,8 @@ impl Terminal {
     pub fn suspend(&mut self) -> io::Result<()> {
         crossterm::terminal::disable_raw_mode()?;
         self.out.execute(LeaveAlternateScreen)?;
+        #[cfg(not(windows))]
+        self.out.execute(DisableBracketedPaste)?;
         self.out.execute(Show)?;
         Ok(())
     }
@@ -55,6 +58,8 @@ impl Terminal {
     pub fn unsuspend(&mut self) -> io::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         self.out.execute(EnterAlternateScreen)?;
+        #[cfg(not(windows))]
+        self.out.execute(EnableBracketedPaste)?;
         self.full_redraw = true;
         Ok(())
     }
