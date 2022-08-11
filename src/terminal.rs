@@ -4,7 +4,10 @@ use std::io::Write;
 use std::{io, mem};
 
 use crossterm::cursor::{Hide, MoveTo, Show};
-use crossterm::event::{DisableBracketedPaste, EnableBracketedPaste};
+use crossterm::event::{
+    DisableBracketedPaste, EnableBracketedPaste, KeyboardEnhancementFlags,
+    PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
+};
 use crossterm::style::{PrintStyledContent, StyledContent};
 use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{ExecutableCommand, QueueableCommand};
@@ -50,7 +53,10 @@ impl Terminal {
         crossterm::terminal::disable_raw_mode()?;
         self.out.execute(LeaveAlternateScreen)?;
         #[cfg(not(windows))]
-        self.out.execute(DisableBracketedPaste)?;
+        {
+            self.out.execute(DisableBracketedPaste)?;
+            self.out.execute(PopKeyboardEnhancementFlags)?;
+        }
         self.out.execute(Show)?;
         Ok(())
     }
@@ -59,7 +65,12 @@ impl Terminal {
         crossterm::terminal::enable_raw_mode()?;
         self.out.execute(EnterAlternateScreen)?;
         #[cfg(not(windows))]
-        self.out.execute(EnableBracketedPaste)?;
+        {
+            self.out.execute(EnableBracketedPaste)?;
+            self.out.execute(PushKeyboardEnhancementFlags(
+                KeyboardEnhancementFlags::DISAMBIGUATE_ESCAPE_CODES,
+            ))?;
+        }
         self.full_redraw = true;
         Ok(())
     }
