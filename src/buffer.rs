@@ -157,7 +157,7 @@ impl Default for Cell {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct StackFrame {
+struct StackFrame {
     pub pos: Pos,
     pub size: Size,
     pub drawable_area: Option<(Pos, Size)>,
@@ -188,7 +188,7 @@ impl StackFrame {
         }
     }
 
-    pub fn then(&self, pos: Pos, size: Size) -> Self {
+    fn then(&self, pos: Pos, size: Size) -> Self {
         let pos = self.local_to_global(pos);
 
         let drawable_area = self
@@ -202,17 +202,17 @@ impl StackFrame {
         }
     }
 
-    pub fn local_to_global(&self, local_pos: Pos) -> Pos {
+    fn local_to_global(&self, local_pos: Pos) -> Pos {
         local_pos + self.pos
     }
 
-    pub fn global_to_local(&self, global_pos: Pos) -> Pos {
+    fn global_to_local(&self, global_pos: Pos) -> Pos {
         global_pos - self.pos
     }
 
     /// Ranges along the x and y axis where drawing is allowed, in global
     /// coordinates.
-    pub fn legal_ranges(&self) -> Option<(Range<i32>, Range<i32>)> {
+    fn legal_ranges(&self) -> Option<(Range<i32>, Range<i32>)> {
         if let Some((pos, size)) = self.drawable_area {
             let xrange = pos.x..pos.x + size.width as i32;
             let yrange = pos.y..pos.y + size.height as i32;
@@ -227,6 +227,8 @@ impl StackFrame {
 pub struct Buffer {
     size: Size,
     data: Vec<Cell>,
+    cursor: Option<Pos>,
+
     /// A stack of rectangular drawing areas.
     ///
     /// When rendering to the buffer with a nonempty stack, it behaves as if it
@@ -237,6 +239,9 @@ pub struct Buffer {
 }
 
 impl Buffer {
+    /// Index in `data` of the cell at the given position. The position must
+    /// be inside the buffer.
+    ///
     /// Ignores the stack.
     fn index(&self, x: u16, y: u16) -> usize {
         assert!(x < self.size.width);
@@ -249,6 +254,9 @@ impl Buffer {
         y * width + x
     }
 
+    /// A reference to the cell at the given position. The position must be
+    /// inside the buffer.
+    ///
     /// Ignores the stack.
     pub fn at(&self, x: u16, y: u16) -> &Cell {
         assert!(x < self.size.width);
@@ -258,6 +266,9 @@ impl Buffer {
         &self.data[i]
     }
 
+    /// A mutable reference to the cell at the given position. The position must
+    /// be inside the buffer.
+    ///
     /// Ignores the stack.
     fn at_mut(&mut self, x: u16, y: u16) -> &mut Cell {
         assert!(x < self.size.width);
@@ -267,7 +278,7 @@ impl Buffer {
         &mut self.data[i]
     }
 
-    pub fn current_frame(&self) -> StackFrame {
+    fn current_frame(&self) -> StackFrame {
         self.stack.last().copied().unwrap_or(StackFrame {
             pos: Pos::ZERO,
             size: self.size,
@@ -281,6 +292,19 @@ impl Buffer {
 
     pub fn pop(&mut self) {
         self.stack.pop();
+    }
+
+    /// Size of the current drawable area, respecting the stack.
+    pub fn size(&self) -> Size {
+        self.current_frame().size
+    }
+
+    pub fn cursor(&self) -> Option<Pos> {
+        self.cursor.map(|p| self.current_frame().global_to_local(p))
+    }
+
+    pub fn set_cursor(&mut self, pos: Option<Pos>) {
+        self.cursor = pos.map(|p| self.current_frame().local_to_global(p));
     }
 
     /// Resize the buffer and reset its contents.
@@ -300,6 +324,8 @@ impl Buffer {
             self.data.resize_with(len, Cell::default);
         }
 
+        self.cursor = None;
+
         self.stack.clear();
     }
 
@@ -307,29 +333,35 @@ impl Buffer {
     ///
     /// `buf.reset()` is equivalent to `buf.resize(buf.size())`.
     pub fn reset(&mut self) {
-        self.data.fill_with(Cell::default);
-        self.stack.clear();
+        self.resize(self.size);
     }
 
     /// Remove the grapheme at the specified coordinates from the buffer.
     ///
     /// Removes the entire grapheme, not just the cell at the coordinates.
-    /// Preserves the style of the affected cells. Works even if the coordinates
-    /// don't point to the beginning of the grapheme.
+    /// Preserves the style of the affected cells. Preserves the cursor. Works
+    /// even if the coordinates don't point to the beginning of the grapheme.
     ///
     /// Ignores the stack.
     fn erase(&mut self, x: u16, y: u16) {
         let cell = self.at(x, y);
         let width: u16 = cell.width.into();
         let offset: u16 = cell.offset.into();
+
         for x in (x - offset)..(x - offset + width) {
             let cell = self.at_mut(x, y);
             let style = cell.style;
+
             *cell = Cell::default();
             cell.style = style;
         }
     }
 
+    /// Write styled text to the buffer, respecting the width of individual
+    /// graphemes.
+    ///
+    /// The initial x position is considered the first column for tab width
+    /// calculations.
     pub fn write(&mut self, widthdb: &mut WidthDB, pos: Pos, styled: &Styled) {
         let frame = self.current_frame();
         let (xrange, yrange) = match frame.legal_ranges() {
@@ -359,6 +391,8 @@ impl Buffer {
         }
     }
 
+    /// Write a single grapheme to the buffer, respecting its width.
+    ///
     /// Assumes that `pos.y` is in range.
     fn write_grapheme(
         &mut self,
@@ -401,6 +435,13 @@ impl Buffer {
                     style,
                     ..Default::default()
                 };
+            }
+        }
+
+        if let Some(pos) = self.cursor {
+            if pos.y == y as i32 && start_x <= pos.x && pos.x <= end_x {
+                // The cursor lies within the bounds of the current grapheme and
+                self.cursor = None;
             }
         }
     }

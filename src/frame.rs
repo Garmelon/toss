@@ -10,7 +10,6 @@ use crate::wrap;
 pub struct Frame {
     pub(crate) widthdb: WidthDB,
     pub(crate) buffer: Buffer,
-    cursor: Option<Pos>,
 }
 
 impl Frame {
@@ -23,21 +22,19 @@ impl Frame {
     }
 
     pub fn size(&self) -> Size {
-        self.buffer.current_frame().size
+        self.buffer.size()
     }
 
     pub fn reset(&mut self) {
         self.buffer.reset();
-        self.cursor = None;
     }
 
     pub fn cursor(&self) -> Option<Pos> {
-        self.cursor
-            .map(|p| self.buffer.current_frame().global_to_local(p))
+        self.buffer.cursor()
     }
 
     pub fn set_cursor(&mut self, pos: Option<Pos>) {
-        self.cursor = pos.map(|p| self.buffer.current_frame().local_to_global(p));
+        self.buffer.set_cursor(pos);
     }
 
     pub fn show_cursor(&mut self, pos: Pos) {
