@@ -8,22 +8,24 @@ use crossterm::QueueableCommand;
 use unicode_segmentation::UnicodeSegmentation;
 use unicode_width::UnicodeWidthStr;
 
+use crate::wrap;
+
 /// Measures and stores the with (in terminal coordinates) of graphemes.
 #[derive(Debug)]
 pub struct WidthDB {
-    pub active: bool,
+    pub(crate) active: bool,
+    pub(crate) tab_width: u8,
     known: HashMap<String, u8>,
     requested: HashSet<String>,
-    pub(crate) tab_width: u8,
 }
 
 impl Default for WidthDB {
     fn default() -> Self {
         Self {
             active: false,
+            tab_width: 8,
             known: Default::default(),
             requested: Default::default(),
-            tab_width: 8,
         }
     }
 }
@@ -70,9 +72,13 @@ impl WidthDB {
         total
     }
 
+    pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
+        wrap::wrap(self, text, width)
+    }
+
     /// Whether any new graphemes have been seen since the last time
     /// [`Self::measure_widths`] was called.
-    pub fn measuring_required(&self) -> bool {
+    pub(crate) fn measuring_required(&self) -> bool {
         self.active && !self.requested.is_empty()
     }
 
@@ -82,7 +88,7 @@ impl WidthDB {
     /// This function measures the actual width of graphemes by writing them to
     /// the terminal. After it finishes, the terminal's contents should be
     /// assumed to be garbage and a full redraw should be performed.
-    pub fn measure_widths(&mut self, out: &mut impl Write) -> io::Result<()> {
+    pub(crate) fn measure_widths(&mut self, out: &mut impl Write) -> io::Result<()> {
         if !self.active {
             return Ok(());
         }

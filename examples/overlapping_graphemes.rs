@@ -43,7 +43,7 @@ fn draw(f: &mut Frame) {
         Pos::new(0, 13),
         "scientist emoji as a woman and a microscope: 👩‍🔬",
     );
-    for i in 0..(f.width(scientist) + 4) {
+    for i in 0..(f.widthdb().width(scientist) + 4) {
         f.write(Pos::new(2, 15 + i as i32), (scientist, under));
         f.write(Pos::new(i as i32, 15 + i as i32), ("x", over));
     }

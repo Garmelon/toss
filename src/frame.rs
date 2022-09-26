@@ -45,24 +45,8 @@ impl Frame {
         self.set_cursor(None);
     }
 
-    /// Determine the width of a grapheme.
-    ///
-    /// If the grapheme is a tab, the column is used to determine its width.
-    ///
-    /// If the width has not been measured yet, it is estimated using the
-    /// Unicode Standard Annex #11.
-    pub fn grapheme_width(&mut self, grapheme: &str, col: usize) -> u8 {
-        self.widthdb.grapheme_width(grapheme, col)
-    }
-
-    /// Determine the width of a string based on its graphemes.
-    ///
-    /// If a grapheme is a tab, its column is used to determine its width.
-    ///
-    /// If the width of a grapheme has not been measured yet, it is estimated
-    /// using the Unicode Standard Annex #11.
-    pub fn width(&mut self, s: &str) -> usize {
-        self.widthdb.width(s)
+    pub fn widthdb(&mut self) -> &mut WidthDB {
+        &mut self.widthdb
     }
 
     pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
