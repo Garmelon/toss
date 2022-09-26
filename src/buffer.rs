@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Neg, Range, Sub, SubAssign};
 use crossterm::style::ContentStyle;
 
 use crate::styled::Styled;
-use crate::widthdb::WidthDB;
+use crate::widthdb::WidthDb;
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {
@@ -362,7 +362,7 @@ impl Buffer {
     ///
     /// The initial x position is considered the first column for tab width
     /// calculations.
-    pub fn write(&mut self, widthdb: &mut WidthDB, pos: Pos, styled: &Styled) {
+    pub fn write(&mut self, widthdb: &mut WidthDb, pos: Pos, styled: &Styled) {
         let frame = self.current_frame();
         let (xrange, yrange) = match frame.legal_ranges() {
             Some(ranges) => ranges,

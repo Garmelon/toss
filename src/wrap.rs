@@ -3,9 +3,9 @@
 use unicode_linebreak::BreakOpportunity;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::widthdb::WidthDB;
+use crate::widthdb::WidthDb;
 
-pub fn wrap(widthdb: &mut WidthDB, text: &str, width: usize) -> Vec<usize> {
+pub fn wrap(widthdb: &mut WidthDb, text: &str, width: usize) -> Vec<usize> {
     let mut breaks = vec![];
 
     let mut break_options = unicode_linebreak::linebreaks(text).peekable();

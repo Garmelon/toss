@@ -12,14 +12,14 @@ use crate::wrap;
 
 /// Measures and stores the with (in terminal coordinates) of graphemes.
 #[derive(Debug)]
-pub struct WidthDB {
+pub struct WidthDb {
     pub(crate) active: bool,
     pub(crate) tab_width: u8,
     known: HashMap<String, u8>,
     requested: HashSet<String>,
 }
 
-impl Default for WidthDB {
+impl Default for WidthDb {
     fn default() -> Self {
         Self {
             active: false,
@@ -30,7 +30,7 @@ impl Default for WidthDB {
     }
 }
 
-impl WidthDB {
+impl WidthDb {
     /// Determine the width of a tab character starting at the specified column.
     fn tab_width_at_column(&self, col: usize) -> u8 {
         self.tab_width - (col % self.tab_width as usize) as u8

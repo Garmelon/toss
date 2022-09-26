@@ -3,12 +3,12 @@
 use crate::buffer::Buffer;
 pub use crate::buffer::{Pos, Size};
 use crate::styled::Styled;
-use crate::widthdb::WidthDB;
+use crate::widthdb::WidthDb;
 use crate::wrap;
 
 #[derive(Debug, Default)]
 pub struct Frame {
-    pub(crate) widthdb: WidthDB,
+    pub(crate) widthdb: WidthDb,
     pub(crate) buffer: Buffer,
 }
 
@@ -45,7 +45,7 @@ impl Frame {
         self.set_cursor(None);
     }
 
-    pub fn widthdb(&mut self) -> &mut WidthDB {
+    pub fn widthdb(&mut self) -> &mut WidthDb {
         &mut self.widthdb
     }
 
