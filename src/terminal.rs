@@ -14,6 +14,7 @@ use crossterm::{ExecutableCommand, QueueableCommand};
 
 use crate::buffer::{Buffer, Size};
 use crate::frame::Frame;
+use crate::widthdb::WidthDb;
 
 pub struct Terminal {
     /// Render target.
@@ -117,6 +118,10 @@ impl Terminal {
 
     pub fn frame(&mut self) -> &mut Frame {
         &mut self.frame
+    }
+
+    pub fn widthdb(&mut self) -> &mut WidthDb {
+        &mut self.frame.widthdb
     }
 
     /// Display the current frame on the screen and prepare the next frame.
