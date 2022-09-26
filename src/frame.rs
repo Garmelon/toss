@@ -4,7 +4,6 @@ use crate::buffer::Buffer;
 pub use crate::buffer::{Pos, Size};
 use crate::styled::Styled;
 use crate::widthdb::WidthDb;
-use crate::wrap;
 
 #[derive(Debug, Default)]
 pub struct Frame {
@@ -47,10 +46,6 @@ impl Frame {
 
     pub fn widthdb(&mut self) -> &mut WidthDb {
         &mut self.widthdb
-    }
-
-    pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
-        wrap::wrap(&mut self.widthdb, text, width)
     }
 
     pub fn write<S: Into<Styled>>(&mut self, pos: Pos, styled: S) {

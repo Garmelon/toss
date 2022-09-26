@@ -30,7 +30,8 @@ fn draw(f: &mut Frame) {
         "123456789\tx\n",
     );
 
-    let breaks = f.wrap(text, f.size().width.into());
+    let width = f.size().width.into();
+    let breaks = f.widthdb().wrap(text, width);
     let lines = Styled::new_plain(text).split_at_indices(&breaks);
     for (i, mut line) in lines.into_iter().enumerate() {
         line.trim_end();
