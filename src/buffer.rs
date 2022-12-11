@@ -195,7 +195,7 @@ impl StackFrame {
             .drawable_area
             .and_then(|(da_pos, da_size)| Self::intersect_areas(da_pos, da_size, pos, size));
 
-        StackFrame {
+        Self {
             pos,
             size,
             drawable_area,

@@ -34,7 +34,7 @@ impl Styled {
         self.then(text, ContentStyle::default())
     }
 
-    pub fn and_then(mut self, mut other: Styled) -> Self {
+    pub fn and_then(mut self, mut other: Self) -> Self {
         let delta = self.text.len();
         for (_, until) in &mut other.styles {
             *until += delta;
