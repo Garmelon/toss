@@ -167,7 +167,7 @@ impl From<&str> for Styled {
 
 impl From<String> for Styled {
     fn from(text: String) -> Self {
-        Self::new_plain(&text)
+        Self::new_plain(text)
     }
 }
 
