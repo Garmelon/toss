@@ -16,7 +16,7 @@ pub struct BorderLook {
 }
 
 impl BorderLook {
-    /// ```
+    /// ```text
     /// +-------+
     /// | Hello |
     /// +-------+
@@ -32,7 +32,7 @@ impl BorderLook {
         right: "|",
     };
 
-    /// ```
+    /// ```text
     /// ┌───────┐
     /// │ Hello │
     /// └───────┘
@@ -48,7 +48,7 @@ impl BorderLook {
         right: "│",
     };
 
-    /// ```
+    /// ```text
     /// ┏━━━━━━━┓
     /// ┃ Hello ┃
     /// ┗━━━━━━━┛
@@ -64,7 +64,7 @@ impl BorderLook {
         right: "┃",
     };
 
-    /// ```
+    /// ```text
     /// ╔═══════╗
     /// ║ Hello ║
     /// ╚═══════╝
