@@ -12,6 +12,7 @@
 mod buffer;
 mod coords;
 mod frame;
+mod style;
 mod styled;
 mod terminal;
 mod widget;
@@ -21,6 +22,7 @@ mod wrap;
 
 pub use coords::*;
 pub use frame::*;
+pub use style::*;
 pub use styled::*;
 pub use terminal::*;
 pub use widget::*;
