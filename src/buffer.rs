@@ -278,16 +278,15 @@ impl Buffer {
             return; // Not visible
         }
 
-        // TODO Merge styles
-
         if start_x >= min_x && end_x <= max_x {
             // Fully visible, write actual grapheme
+            let base_style = self.at(start_x as u16, y).style;
             for offset in 0..width {
                 let x = start_x as u16 + offset as u16;
                 self.erase(x, y);
                 *self.at_mut(x, y) = Cell {
                     content: grapheme.to_string().into_boxed_str(),
-                    style: style.content_style,
+                    style: style.cover(base_style),
                     width,
                     offset,
                 };
@@ -297,9 +296,10 @@ impl Buffer {
             let start_x = start_x.max(0) as u16;
             let end_x = end_x.min(max_x) as u16;
             for x in start_x..=end_x {
+                let base_style = self.at(x, y).style;
                 self.erase(x, y);
                 *self.at_mut(x, y) = Cell {
-                    style: style.content_style,
+                    style: style.cover(base_style),
                     ..Default::default()
                 };
             }
