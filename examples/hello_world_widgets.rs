@@ -6,7 +6,7 @@ use toss::widgets::{BorderLook, Text};
 use toss::{Style, Styled, Terminal, Widget, WidgetExt};
 
 fn widget() -> impl Widget<Infallible> {
-    let styled = Styled::new("Hello world!", Style::new().green())
+    let styled = Styled::new("Hello world!", Style::new().dark_green())
         .then_plain("\n")
         .then("Press any key to exit", Style::new().on_dark_blue());
     Text::new(styled)
@@ -16,7 +16,7 @@ fn widget() -> impl Widget<Infallible> {
         .look(BorderLook::LINE_DOUBLE)
         .style(Style::new().dark_red())
         .background()
-        .style(Style::new().on_dark_yellow().opaque())
+        .style(Style::new().on_yellow().opaque())
         .float()
         .all(0.5)
 }
