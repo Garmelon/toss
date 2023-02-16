@@ -6,17 +6,20 @@ use toss::widgets::{BorderLook, Text};
 use toss::{Styled, Terminal, Widget, WidgetExt};
 
 fn widget() -> impl Widget<Infallible> {
-    Text::new(
-        Styled::new("Hello world!", ContentStyle::default().green())
-            .then_plain("\n")
-            .then(
-                "Press any key to exit",
-                ContentStyle::default().on_dark_blue(),
-            ),
-    )
-    .border()
-    .look(BorderLook::LINE_DOUBLE)
-    .style(ContentStyle::default().dark_red())
+    let styled = Styled::new("Hello world!", ContentStyle::default().green())
+        .then_plain("\n")
+        .then(
+            "Press any key to exit",
+            ContentStyle::default().on_dark_blue(),
+        );
+    Text::new(styled)
+        .padding()
+        .horizontal(1)
+        .border()
+        .look(BorderLook::LINE_DOUBLE)
+        .style(ContentStyle::default().dark_red())
+        .float()
+        .all(0.5)
 }
 
 fn render_frame(term: &mut Terminal) {

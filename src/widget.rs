@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::widgets::{Border, Padding};
+use crate::widgets::{Border, Float, Padding};
 use crate::{Frame, Size};
 
 // TODO Feature-gate these traits
@@ -33,6 +33,10 @@ pub trait WidgetExt: Sized {
         Border::new(self)
     }
 
+    fn float(self) -> Float<Self> {
+        Float::new(self)
+    }
+
     fn padding(self) -> Padding<Self> {
         Padding::new(self)
     }
@@ -43,6 +47,10 @@ impl<W> WidgetExt for W {}
 pub trait AsyncWidgetExt: Sized {
     fn border(self) -> Border<Self> {
         Border::new(self)
+    }
+
+    fn float(self) -> Float<Self> {
+        Float::new(self)
     }
 
     fn padding(self) -> Padding<Self> {
