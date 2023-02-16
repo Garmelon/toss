@@ -32,9 +32,6 @@ impl<I> Float<I> {
     }
 
     fn push_inner(&self, frame: &mut Frame, size: Size, mut inner_size: Size) {
-        inner_size.width = inner_size.width.min(size.width);
-        inner_size.height = inner_size.height.min(size.height);
-
         let mut inner_pos = Pos::ZERO;
 
         if let Some(horizontal) = self.horizontal {
@@ -42,6 +39,9 @@ impl<I> Float<I> {
             // Biased towards the left if horizontal lands exactly on the
             // boundary between two cells
             inner_pos.x = (horizontal * available).floor().min(available) as i32;
+            inner_size.width = inner_size.width.min(size.width);
+        } else {
+            inner_size.width = size.width;
         }
 
         if let Some(vertical) = self.vertical {
@@ -49,6 +49,9 @@ impl<I> Float<I> {
             // Biased towards the top if vertical lands exactly on the boundary
             // between two cells
             inner_pos.y = (vertical * available).floor().min(available) as i32;
+            inner_size.height = inner_size.height.min(size.height);
+        } else {
+            inner_size.height = size.height;
         }
 
         frame.push(inner_pos, inner_size);
