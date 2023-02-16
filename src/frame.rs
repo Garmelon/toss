@@ -1,9 +1,7 @@
 //! Rendering the next frame.
 
 use crate::buffer::Buffer;
-pub use crate::buffer::{Pos, Size};
-use crate::styled::Styled;
-use crate::widthdb::WidthDb;
+use crate::{Pos, Size, Styled, WidthDb};
 
 #[derive(Debug, Default)]
 pub struct Frame {

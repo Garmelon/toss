@@ -10,8 +10,14 @@
 #![warn(clippy::use_self)]
 
 mod buffer;
-pub mod frame;
-pub mod styled;
-pub mod terminal;
-pub mod widthdb;
+mod frame;
+mod styled;
+mod terminal;
+mod widthdb;
 mod wrap;
+
+pub use buffer::{Pos, Size};
+pub use frame::*;
+pub use styled::*;
+pub use terminal::*;
+pub use widthdb::*;

@@ -1,7 +1,7 @@
 //! Displaying frames on a terminal.
 
-use std::io::Write;
-use std::{io, mem};
+use std::io::{self, Write};
+use std::mem;
 
 use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::event::{
@@ -12,9 +12,8 @@ use crossterm::style::{PrintStyledContent, StyledContent};
 use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use crossterm::{ExecutableCommand, QueueableCommand};
 
-use crate::buffer::{Buffer, Size};
-use crate::frame::Frame;
-use crate::widthdb::WidthDb;
+use crate::buffer::Buffer;
+use crate::{Frame, Size, WidthDb};
 
 pub struct Terminal {
     /// Render target.

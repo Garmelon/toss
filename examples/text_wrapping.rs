@@ -1,7 +1,5 @@
 use crossterm::event::Event;
-use toss::frame::{Frame, Pos};
-use toss::styled::Styled;
-use toss::terminal::Terminal;
+use toss::{Frame, Pos, Styled, Terminal};
 
 fn draw(f: &mut Frame) {
     let text = concat!(

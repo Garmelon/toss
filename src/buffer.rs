@@ -2,8 +2,7 @@ use std::ops::{Add, AddAssign, Neg, Range, Sub, SubAssign};
 
 use crossterm::style::ContentStyle;
 
-use crate::styled::Styled;
-use crate::widthdb::WidthDb;
+use crate::{Styled, WidthDb};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {

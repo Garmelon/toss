@@ -1,7 +1,6 @@
 use crossterm::event::Event;
 use crossterm::style::{ContentStyle, Stylize};
-use toss::frame::{Frame, Pos};
-use toss::terminal::Terminal;
+use toss::{Frame, Pos, Terminal};
 
 fn draw(f: &mut Frame) {
     f.write(

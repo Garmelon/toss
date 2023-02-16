@@ -3,7 +3,7 @@
 use unicode_linebreak::BreakOpportunity;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::widthdb::WidthDb;
+use crate::WidthDb;
 
 pub fn wrap(widthdb: &mut WidthDb, text: &str, width: usize) -> Vec<usize> {
     let mut breaks = vec![];

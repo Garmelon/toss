@@ -1,5 +1,5 @@
 use std::iter::Peekable;
-use std::{slice, vec};
+use std::slice;
 
 use crossterm::style::{ContentStyle, StyledContent};
 use unicode_segmentation::{GraphemeIndices, Graphemes, UnicodeSegmentation};
