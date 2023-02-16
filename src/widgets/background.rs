@@ -1,22 +1,21 @@
 use async_trait::async_trait;
-use crossterm::style::ContentStyle;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget};
 
 pub struct Background<I> {
     inner: I,
-    style: ContentStyle,
+    style: Style,
 }
 
 impl<I> Background<I> {
     pub fn new(inner: I) -> Self {
         Self {
             inner,
-            style: ContentStyle::default(),
+            style: Style::default(),
         }
     }
 
-    pub fn style(mut self, style: ContentStyle) -> Self {
+    pub fn style(mut self, style: Style) -> Self {
         self.style = style;
         self
     }

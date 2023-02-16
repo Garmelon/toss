@@ -1,25 +1,22 @@
 use std::convert::Infallible;
 
 use crossterm::event::Event;
-use crossterm::style::{ContentStyle, Stylize};
+use crossterm::style::Stylize;
 use toss::widgets::{BorderLook, Text};
-use toss::{Styled, Terminal, Widget, WidgetExt};
+use toss::{Style, Styled, Terminal, Widget, WidgetExt};
 
 fn widget() -> impl Widget<Infallible> {
-    let styled = Styled::new("Hello world!", ContentStyle::default().green())
+    let styled = Styled::new("Hello world!", Style::new().green())
         .then_plain("\n")
-        .then(
-            "Press any key to exit",
-            ContentStyle::default().on_dark_blue(),
-        );
+        .then("Press any key to exit", Style::new().on_dark_blue());
     Text::new(styled)
         .padding()
         .horizontal(1)
         .border()
         .look(BorderLook::LINE_DOUBLE)
-        .style(ContentStyle::default().dark_red())
+        .style(Style::new().dark_red())
         .background()
-        .style(ContentStyle::default().on_dark_yellow())
+        .style(Style::new().on_dark_yellow().opaque())
         .float()
         .all(0.5)
 }

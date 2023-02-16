@@ -1,7 +1,6 @@
 use async_trait::async_trait;
-use crossterm::style::ContentStyle;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BorderLook {
@@ -90,7 +89,7 @@ impl Default for BorderLook {
 pub struct Border<I> {
     inner: I,
     look: BorderLook,
-    style: ContentStyle,
+    style: Style,
 }
 
 impl<I> Border<I> {
@@ -98,7 +97,7 @@ impl<I> Border<I> {
         Self {
             inner,
             look: BorderLook::default(),
-            style: ContentStyle::default(),
+            style: Style::default(),
         }
     }
 
@@ -107,7 +106,7 @@ impl<I> Border<I> {
         self
     }
 
-    pub fn style(mut self, style: ContentStyle) -> Self {
+    pub fn style(mut self, style: Style) -> Self {
         self.style = style;
         self
     }

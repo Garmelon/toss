@@ -1,14 +1,14 @@
 use crossterm::event::Event;
-use crossterm::style::{ContentStyle, Stylize};
-use toss::{Frame, Pos, Terminal};
+use crossterm::style::Stylize;
+use toss::{Frame, Pos, Style, Terminal};
 
 fn draw(f: &mut Frame) {
     f.write(
         Pos::new(0, 0),
         "Writing over wide graphemes removes the entire overwritten grapheme.",
     );
-    let under = ContentStyle::default().white().on_dark_blue();
-    let over = ContentStyle::default().black().on_dark_yellow();
+    let under = Style::new().white().on_dark_blue();
+    let over = Style::new().black().on_dark_yellow();
     for i in 0..6 {
         let delta = i - 2;
         f.write(Pos::new(2 + i * 7, 2), ("a😀", under));

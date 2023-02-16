@@ -30,15 +30,12 @@ impl Style {
         self
     }
 
-    pub fn cover(self, base: Self) -> Self {
+    pub fn cover(self, base: ContentStyle) -> ContentStyle {
         if self.opaque {
-            return self;
+            return self.content_style;
         }
 
-        Self {
-            content_style: merge_cs(base.content_style, self.content_style),
-            opaque: base.opaque,
-        }
+        merge_cs(base, self.content_style)
     }
 }
 

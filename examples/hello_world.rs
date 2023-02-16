@@ -1,18 +1,12 @@
 use crossterm::event::Event;
-use crossterm::style::{ContentStyle, Stylize};
-use toss::{Frame, Pos, Terminal};
+use crossterm::style::Stylize;
+use toss::{Frame, Pos, Style, Terminal};
 
 fn draw(f: &mut Frame) {
-    f.write(
-        Pos::new(0, 0),
-        ("Hello world!", ContentStyle::default().green()),
-    );
+    f.write(Pos::new(0, 0), ("Hello world!", Style::new().green()));
     f.write(
         Pos::new(0, 1),
-        (
-            "Press any key to exit",
-            ContentStyle::default().on_dark_blue(),
-        ),
+        ("Press any key to exit", Style::new().on_dark_blue()),
     );
     f.show_cursor(Pos::new(16, 0));
 }

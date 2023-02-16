@@ -1,19 +1,20 @@
 use std::iter::Peekable;
 use std::slice;
 
-use crossterm::style::{ContentStyle, StyledContent};
 use unicode_segmentation::{GraphemeIndices, Graphemes, UnicodeSegmentation};
+
+use crate::Style;
 
 #[derive(Debug, Default, Clone)]
 pub struct Styled {
     text: String,
     /// List of `(style, until)` tuples. The style should be applied to all
     /// chars in the range `prev_until..until`.
-    styles: Vec<(ContentStyle, usize)>,
+    styles: Vec<(Style, usize)>,
 }
 
 impl Styled {
-    pub fn new<S: AsRef<str>>(text: S, style: ContentStyle) -> Self {
+    pub fn new<S: AsRef<str>>(text: S, style: Style) -> Self {
         Self::default().then(text, style)
     }
 
@@ -21,7 +22,7 @@ impl Styled {
         Self::default().then_plain(text)
     }
 
-    pub fn then<S: AsRef<str>>(mut self, text: S, style: ContentStyle) -> Self {
+    pub fn then<S: AsRef<str>>(mut self, text: S, style: Style) -> Self {
         let text = text.as_ref();
         if !text.is_empty() {
             self.text.push_str(text);
@@ -31,7 +32,7 @@ impl Styled {
     }
 
     pub fn then_plain<S: AsRef<str>>(self, text: S) -> Self {
-        self.then(text, ContentStyle::default())
+        self.then(text, Style::new())
     }
 
     pub fn and_then(mut self, mut other: Self) -> Self {
@@ -121,11 +122,11 @@ impl Styled {
 
 pub struct StyledGraphemeIndices<'a> {
     text: GraphemeIndices<'a>,
-    styles: Peekable<slice::Iter<'a, (ContentStyle, usize)>>,
+    styles: Peekable<slice::Iter<'a, (Style, usize)>>,
 }
 
 impl<'a> Iterator for StyledGraphemeIndices<'a> {
-    type Item = (usize, StyledContent<&'a str>);
+    type Item = (usize, Style, &'a str);
 
     fn next(&mut self) -> Option<Self::Item> {
         let (gi, grapheme) = self.text.next()?;
@@ -134,7 +135,7 @@ impl<'a> Iterator for StyledGraphemeIndices<'a> {
             self.styles.next();
             (style, until) = **self.styles.peek().expect("styles cover entire text");
         }
-        Some((gi, StyledContent::new(style, grapheme)))
+        Some((gi, style, grapheme))
     }
 }
 
@@ -177,14 +178,14 @@ impl<S: AsRef<str>> From<(S,)> for Styled {
     }
 }
 
-impl<S: AsRef<str>> From<(S, ContentStyle)> for Styled {
-    fn from((text, style): (S, ContentStyle)) -> Self {
+impl<S: AsRef<str>> From<(S, Style)> for Styled {
+    fn from((text, style): (S, Style)) -> Self {
         Self::new(text, style)
     }
 }
 
-impl<S: AsRef<str>> From<&[(S, ContentStyle)]> for Styled {
-    fn from(segments: &[(S, ContentStyle)]) -> Self {
+impl<S: AsRef<str>> From<&[(S, Style)]> for Styled {
+    fn from(segments: &[(S, Style)]) -> Self {
         let mut result = Self::default();
         for (text, style) in segments {
             result = result.then(text, *style);

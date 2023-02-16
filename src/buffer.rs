@@ -2,7 +2,7 @@ use std::ops::Range;
 
 use crossterm::style::ContentStyle;
 
-use crate::{Pos, Size, Styled, WidthDb};
+use crate::{Pos, Size, Style, Styled, WidthDb};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cell {
@@ -242,18 +242,16 @@ impl Buffer {
         let y = pos.y as u16;
 
         let mut col: usize = 0;
-        for (_, styled_grapheme) in styled.styled_grapheme_indices() {
+        for (_, style, grapheme) in styled.styled_grapheme_indices() {
             let x = pos.x + col as i32;
-            let g = *styled_grapheme.content();
-            let style = *styled_grapheme.style();
-            let width = widthdb.grapheme_width(g, col);
+            let width = widthdb.grapheme_width(grapheme, col);
             col += width as usize;
-            if g == "\t" {
+            if grapheme == "\t" {
                 for dx in 0..width {
                     self.write_grapheme(&xrange, x + dx as i32, y, 1, " ", style);
                 }
             } else if width > 0 {
-                self.write_grapheme(&xrange, x, y, width, g, style);
+                self.write_grapheme(&xrange, x, y, width, grapheme, style);
             }
         }
     }
@@ -268,7 +266,7 @@ impl Buffer {
         y: u16,
         width: u8,
         grapheme: &str,
-        style: ContentStyle,
+        style: Style,
     ) {
         let min_x = xrange.start;
         let max_x = xrange.end - 1; // Last possible cell
@@ -280,6 +278,8 @@ impl Buffer {
             return; // Not visible
         }
 
+        // TODO Merge styles
+
         if start_x >= min_x && end_x <= max_x {
             // Fully visible, write actual grapheme
             for offset in 0..width {
@@ -287,7 +287,7 @@ impl Buffer {
                 self.erase(x, y);
                 *self.at_mut(x, y) = Cell {
                     content: grapheme.to_string().into_boxed_str(),
-                    style,
+                    style: style.content_style,
                     width,
                     offset,
                 };
@@ -299,7 +299,7 @@ impl Buffer {
             for x in start_x..=end_x {
                 self.erase(x, y);
                 *self.at_mut(x, y) = Cell {
-                    style,
+                    style: style.content_style,
                     ..Default::default()
                 };
             }
