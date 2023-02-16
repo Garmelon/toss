@@ -2,18 +2,19 @@ use std::convert::Infallible;
 
 use crossterm::event::Event;
 use crossterm::style::{ContentStyle, Stylize};
-use toss::widgets::{Border, BorderLook, Text};
-use toss::{Styled, Terminal, Widget};
+use toss::widgets::{BorderLook, Text};
+use toss::{Styled, Terminal, Widget, WidgetExt};
 
 fn widget() -> impl Widget<Infallible> {
-    Border::new(Text::new(
+    Text::new(
         Styled::new("Hello world!", ContentStyle::default().green())
             .then_plain("\n")
             .then(
                 "Press any key to exit",
                 ContentStyle::default().on_dark_blue(),
             ),
-    ))
+    )
+    .border()
     .look(BorderLook::LINE_DOUBLE)
     .style(ContentStyle::default().dark_red())
 }
