@@ -42,20 +42,14 @@ pub trait WidgetExt: Sized {
     }
 }
 
+// It would be nice if this could be restricted to types implementing Widget.
+// However, Widget (and AsyncWidget) have the E type parameter, which WidgetExt
+// doesn't have. We sadly can't have unconstrained type parameters like that in
+// impl blocks.
+//
+// If WidgetExt had a type parameter E, we'd need to specify that parameter
+// everywhere we use the trait. This is less ergonomic than just constructing
+// the types manually.
+//
+// Blanket-implementing this trait is not great, but usually works fine.
 impl<W> WidgetExt for W {}
-
-pub trait AsyncWidgetExt: Sized {
-    fn border(self) -> Border<Self> {
-        Border::new(self)
-    }
-
-    fn float(self) -> Float<Self> {
-        Float::new(self)
-    }
-
-    fn padding(self) -> Padding<Self> {
-        Padding::new(self)
-    }
-}
-
-impl<W> AsyncWidgetExt for W {}
