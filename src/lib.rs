@@ -14,6 +14,7 @@ mod frame;
 mod styled;
 mod terminal;
 mod widget;
+pub mod widgets;
 mod widthdb;
 mod wrap;
 
