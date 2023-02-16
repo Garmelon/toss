@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+async-trait = "0.1.64"
 crossterm = "0.26.0"
 unicode-linebreak = "0.1.4"
 unicode-segmentation = "1.10.1"

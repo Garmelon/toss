@@ -13,6 +13,7 @@ mod buffer;
 mod frame;
 mod styled;
 mod terminal;
+mod widget;
 mod widthdb;
 mod wrap;
 
@@ -20,4 +21,5 @@ pub use buffer::{Pos, Size};
 pub use frame::*;
 pub use styled::*;
 pub use terminal::*;
+pub use widget::*;
 pub use widthdb::*;
