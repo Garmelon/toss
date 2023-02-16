@@ -18,6 +18,8 @@ fn widget() -> impl Widget<Infallible> {
         .border()
         .look(BorderLook::LINE_DOUBLE)
         .style(ContentStyle::default().dark_red())
+        .background()
+        .style(ContentStyle::default().on_dark_yellow())
         .float()
         .all(0.5)
 }
