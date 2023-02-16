@@ -16,6 +16,20 @@ impl Size {
     pub const fn new(width: u16, height: u16) -> Self {
         Self { width, height }
     }
+
+    pub const fn saturating_add(self, rhs: Self) -> Self {
+        Self::new(
+            self.width.saturating_add(rhs.width),
+            self.height.saturating_add(rhs.height),
+        )
+    }
+
+    pub const fn saturating_sub(self, rhs: Self) -> Self {
+        Self::new(
+            self.width.saturating_sub(rhs.width),
+            self.height.saturating_sub(rhs.height),
+        )
+    }
 }
 
 impl Add for Size {
