@@ -17,7 +17,7 @@ use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
 /// Wrapper that manages terminal output.
 ///
-/// This struct wraps around stdout (usually) and handles showing things on the
+/// This struct (usually) wraps around stdout and handles showing things on the
 /// terminal. It cleans up after itself when droppped, so it shouldn't leave the
 /// terminal in a weird state even if your program crashes.
 pub struct Terminal {
@@ -39,10 +39,12 @@ impl Drop for Terminal {
 }
 
 impl Terminal {
+    /// Create a new [`Terminal`] that wraps stdout.
     pub fn new() -> io::Result<Self> {
         Self::with_target(Box::new(io::stdout()))
     }
 
+    /// Create a new terminal wrapping a custom output.
     pub fn with_target(out: Box<dyn Write>) -> io::Result<Self> {
         let mut result = Self {
             out,
@@ -54,6 +56,13 @@ impl Terminal {
         Ok(result)
     }
 
+    /// Temporarily restore the terminal state to normal.
+    ///
+    /// This is useful when running external programs the user should interact
+    /// with directly, for example a text editor.
+    ///
+    /// Call [`Self::unsuspend`] to return the terminal state before drawing and
+    /// presenting the next frame.
     pub fn suspend(&mut self) -> io::Result<()> {
         crossterm::terminal::disable_raw_mode()?;
         self.out.execute(LeaveAlternateScreen)?;
@@ -66,6 +75,10 @@ impl Terminal {
         Ok(())
     }
 
+    /// Restore the terminal state after calling [`Self::suspend`].
+    ///
+    /// After calling this function, a new frame needs to be drawn and presented
+    /// by the application. The previous screen contents are **not** restored.
     pub fn unsuspend(&mut self) -> io::Result<()> {
         crossterm::terminal::enable_raw_mode()?;
         self.out.execute(EnterAlternateScreen)?;
@@ -80,24 +93,53 @@ impl Terminal {
         Ok(())
     }
 
+    /// Set the tab width in columns.
+    ///
+    /// For more details, see [`Self::tab_width`].
     pub fn set_tab_width(&mut self, tab_width: u8) {
         self.frame.widthdb.tab_width = tab_width;
     }
 
+    /// The tab width in columns.
+    ///
+    /// For accurate width calculations and consistency across terminals, tabs
+    /// are not printed to the terminal directly, but instead converted into
+    /// spaces.
     pub fn tab_width(&self) -> u8 {
         self.frame.widthdb.tab_width
     }
 
+    /// Enable or disable grapheme width measurements.
+    ///
+    /// For more details, see [`Self::measuring`].
     pub fn set_measuring(&mut self, active: bool) {
         self.frame.widthdb.active = active;
     }
 
+    /// Whether grapheme widths should be measured or estimated.
+    ///
+    /// Handling of wide characters is inconsistent from terminal emulator to
+    /// terminal emulator, and may even depend on the font the user is using.
+    ///
+    /// When enabled, any newly encountered graphemes are measured whenever a
+    /// new frame is presented. This is done by clearing the screen, printing
+    /// the grapheme and measuring the resulting cursor position. Because of
+    /// this, the screen will flicker occasionally. However, grapheme widths
+    /// will always be accurate independent of the terminal configuration.
+    ///
+    /// When disabled, the width of graphemes is estimated using the Unicode
+    /// Standard Annex #11. This usually works fine, but may break on some emoji
+    /// or other less commonly used character sequences.
     pub fn measuring(&self) -> bool {
         self.frame.widthdb.active
     }
 
     /// Resize the frame and other internal buffers if the terminal size has
     /// changed.
+    ///
+    /// Should be called before drawing a frame and presenting it with
+    /// [`Self::present`]. It is not necessary to call this when using
+    /// [`Self::present_widget`] or [`Self::present_async_widget`].
     pub fn autoresize(&mut self) -> io::Result<()> {
         let (width, height) = crossterm::terminal::size()?;
         let size = Size { width, height };
@@ -110,10 +152,12 @@ impl Terminal {
         Ok(())
     }
 
+    /// The current frame.
     pub fn frame(&mut self) -> &mut Frame {
         &mut self.frame
     }
 
+    /// A database of grapheme widths.
     pub fn widthdb(&mut self) -> &mut WidthDb {
         &mut self.frame.widthdb
     }
