@@ -1,5 +1,6 @@
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
+/// Size in screen cells.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct Size {
     pub width: u16,
@@ -13,6 +14,7 @@ impl Size {
         Self { width, height }
     }
 
+    /// Add two [`Size`]s using [`u16::saturating_add`].
     pub const fn saturating_add(self, rhs: Self) -> Self {
         Self::new(
             self.width.saturating_add(rhs.width),
@@ -20,6 +22,7 @@ impl Size {
         )
     }
 
+    /// Subtract two [`Size`]s using [`u16::saturating_sub`].
     pub const fn saturating_sub(self, rhs: Self) -> Self {
         Self::new(
             self.width.saturating_sub(rhs.width),
@@ -58,6 +61,9 @@ impl SubAssign for Size {
     }
 }
 
+/// Position in screen cell coordinates.
+///
+/// The x axis points to the right. The y axis points down.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Pos {
     pub x: i32,
