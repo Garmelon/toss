@@ -13,8 +13,13 @@ use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternate
 use crossterm::{ExecutableCommand, QueueableCommand};
 
 use crate::buffer::Buffer;
-use crate::{Frame, Size, WidthDb};
+use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
+/// Wrapper that manages terminal output.
+///
+/// This struct wraps around stdout (usually) and handles showing things on the
+/// terminal. It cleans up after itself when droppped, so it shouldn't leave the
+/// terminal in a weird state even if your program crashes.
 pub struct Terminal {
     /// Render target.
     out: Box<dyn Write>,
@@ -149,6 +154,36 @@ impl Terminal {
         self.frame.reset();
 
         Ok(measure)
+    }
+
+    /// Display a [`Widget`] on the screen.
+    ///
+    /// Internally calls [`Self::autoresize`] and [`Self::present`], and passes
+    /// on the value returned by [`Self::present`].
+    pub fn present_widget<E, W>(&mut self, widget: W) -> Result<bool, E>
+    where
+        E: From<io::Error>,
+        W: Widget<E>,
+    {
+        self.autoresize()?;
+        widget.draw(self.frame())?;
+        let dirty = self.present()?;
+        Ok(dirty)
+    }
+
+    /// Display an [`AsyncWidget`] on the screen.
+    ///
+    /// Internally calls [`Self::autoresize`] and [`Self::present`], and passes
+    /// on the value returned by [`Self::present`].
+    pub async fn present_async_widget<E, W>(&mut self, widget: W) -> Result<bool, E>
+    where
+        E: From<io::Error>,
+        W: AsyncWidget<E>,
+    {
+        self.autoresize()?;
+        widget.draw(self.frame()).await?;
+        let dirty = self.present()?;
+        Ok(dirty)
     }
 
     fn draw_differences(&mut self) -> io::Result<()> {

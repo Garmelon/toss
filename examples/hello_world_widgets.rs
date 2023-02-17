@@ -22,14 +22,7 @@ fn widget() -> impl Widget<io::Error> {
 }
 
 fn render_frame(term: &mut Terminal) {
-    // Must be called before rendering, otherwise the terminal has out-of-date
-    // size information and will present garbage.
-    term.autoresize().unwrap();
-    widget().draw(term.frame()).unwrap();
-    while term.present().unwrap() {
-        term.autoresize().unwrap();
-        widget().draw(term.frame()).unwrap();
-    }
+    while term.present_widget(widget()).unwrap() {}
 }
 
 fn main() {
