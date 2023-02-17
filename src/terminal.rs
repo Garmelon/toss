@@ -135,13 +135,21 @@ impl Terminal {
         self.frame.widthdb.active
     }
 
-    /// Measure widths of newly encountered graphemes.
+    /// Whether any unmeasured graphemes were seen since the last call to
+    /// [`Self::measure_widths`].
+    ///
+    /// Returns `true` whenever [`Self::measure_widths`] would return `true`.
+    pub fn measuring_required(&self) -> bool {
+        self.frame.widthdb.measuring_required()
+    }
+
+    /// Measure widths of all unmeasured graphemes.
     ///
     /// If width measurements are disabled, this function does nothing. For more
     /// info, see [`Self::measuring`].
     ///
-    /// Returns `true` if graphemes were measured and the screen must be
-    /// redrawn. Keep in mind that after redrawing the screen, new graphemes may
+    /// Returns `true` if any new graphemes were measured and the screen must be
+    /// redrawn. Keep in mind that after redrawing the screen, graphemes may
     /// have become visible that have not yet been measured. You should keep
     /// re-measuring and re-drawing until this function returns `false`.
     pub fn measure_widths(&mut self) -> io::Result<bool> {
