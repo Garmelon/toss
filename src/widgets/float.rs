@@ -31,6 +31,34 @@ impl<I> Float<I> {
         self.horizontal(position).vertical(position)
     }
 
+    pub fn left(self) -> Self {
+        self.horizontal(0.0)
+    }
+
+    pub fn right(self) -> Self {
+        self.horizontal(1.0)
+    }
+
+    pub fn top(self) -> Self {
+        self.vertical(0.0)
+    }
+
+    pub fn bottom(self) -> Self {
+        self.vertical(1.0)
+    }
+
+    pub fn center_h(self) -> Self {
+        self.horizontal(0.5)
+    }
+
+    pub fn center_v(self) -> Self {
+        self.vertical(0.5)
+    }
+
+    pub fn center(self) -> Self {
+        self.all(0.5)
+    }
+
     fn push_inner(&self, frame: &mut Frame, size: Size, mut inner_size: Size) {
         let mut inner_pos = Pos::ZERO;
 
