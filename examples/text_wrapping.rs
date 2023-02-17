@@ -38,13 +38,12 @@ fn draw(f: &mut Frame) {
 }
 
 fn render_frame(term: &mut Terminal) {
-    // Must be called before rendering, otherwise the terminal has out-of-date
-    // size information and will present garbage.
-    term.autoresize().unwrap();
-    draw(term.frame());
-    while term.present().unwrap() {
+    let mut dirty = true;
+    while dirty {
+        dirty = term.measure_widths().unwrap();
         term.autoresize().unwrap();
         draw(term.frame());
+        term.present().unwrap();
     }
 }
 

@@ -121,17 +121,37 @@ impl Terminal {
     /// Handling of wide characters is inconsistent from terminal emulator to
     /// terminal emulator, and may even depend on the font the user is using.
     ///
-    /// When enabled, any newly encountered graphemes are measured whenever a
-    /// new frame is presented. This is done by clearing the screen, printing
-    /// the grapheme and measuring the resulting cursor position. Because of
-    /// this, the screen will flicker occasionally. However, grapheme widths
-    /// will always be accurate independent of the terminal configuration.
+    /// When enabled, any newly encountered graphemes are measured whenever
+    /// [`Self::measure_widths`] is called. This is done by clearing the screen,
+    /// printing the grapheme and measuring the resulting cursor position.
+    /// Because of this, the screen will flicker occasionally. However, grapheme
+    /// widths will always be accurate independent of the terminal
+    /// configuration.
     ///
     /// When disabled, the width of graphemes is estimated using the Unicode
     /// Standard Annex #11. This usually works fine, but may break on some emoji
     /// or other less commonly used character sequences.
     pub fn measuring(&self) -> bool {
         self.frame.widthdb.active
+    }
+
+    /// Measure widths of newly encountered graphemes.
+    ///
+    /// If width measurements are disabled, this function does nothing. For more
+    /// info, see [`Self::measuring`].
+    ///
+    /// Returns `true` if graphemes were measured and the screen must be
+    /// redrawn. Keep in mind that after redrawing the screen, new graphemes may
+    /// have become visible that have not yet been measured. You should keep
+    /// re-measuring and re-drawing until this function returns `false`.
+    pub fn measure_widths(&mut self) -> io::Result<bool> {
+        if self.frame.widthdb.measuring_required() {
+            self.full_redraw = true;
+            self.frame.widthdb.measure_widths(&mut self.out)?;
+            Ok(true)
+        } else {
+            Ok(false)
+        }
     }
 
     /// Resize the frame and other internal buffers if the terminal size has
@@ -164,26 +184,12 @@ impl Terminal {
 
     /// Display the current frame on the screen and prepare the next frame.
     ///
-    /// Before drawing and presenting a frame, [`Self::autoresize`] should be
-    /// called. [`Self::present`] does **not** call it automatically.
-    ///
-    /// If width measurements are turned on, any new graphemes encountered since
-    /// the last [`Self::present`] call will be measured. This can lead to the
-    /// screen flickering or being mostly blank until measurements complete.
-    ///
-    /// Returns `true` if any new graphemes were measured. Since their widths
-    /// may have changed because of the measurements, the application using this
-    /// [`Terminal`] should re-draw and re-present the current frame.
+    /// Before drawing and presenting a frame, [`Self::measure_widths`] and
+    /// [`Self::autoresize`] should be called.
     ///
     /// After calling this function, the frame returned by [`Self::frame`] will
     /// be empty again and have no cursor position.
-    pub fn present(&mut self) -> io::Result<bool> {
-        let measure = self.frame.widthdb.measuring_required();
-        if measure {
-            self.frame.widthdb.measure_widths(&mut self.out)?;
-            self.full_redraw = true;
-        }
-
+    pub fn present(&mut self) -> io::Result<()> {
         if self.full_redraw {
             io::stdout().queue(Clear(ClearType::All))?;
             self.prev_frame_buffer.reset(); // Because the screen is now empty
@@ -197,37 +203,37 @@ impl Terminal {
         mem::swap(&mut self.prev_frame_buffer, &mut self.frame.buffer);
         self.frame.reset();
 
-        Ok(measure)
+        Ok(())
     }
 
     /// Display a [`Widget`] on the screen.
     ///
-    /// Internally calls [`Self::autoresize`] and [`Self::present`], and passes
-    /// on the value returned by [`Self::present`].
-    pub fn present_widget<E, W>(&mut self, widget: W) -> Result<bool, E>
+    /// Before creating and presenting a widget, [`Self::masure_widths`] should
+    /// be called. There is no need to call [`Self::autoresize`].
+    pub fn present_widget<E, W>(&mut self, widget: W) -> Result<(), E>
     where
         E: From<io::Error>,
         W: Widget<E>,
     {
         self.autoresize()?;
         widget.draw(self.frame())?;
-        let dirty = self.present()?;
-        Ok(dirty)
+        self.present()?;
+        Ok(())
     }
 
     /// Display an [`AsyncWidget`] on the screen.
     ///
-    /// Internally calls [`Self::autoresize`] and [`Self::present`], and passes
-    /// on the value returned by [`Self::present`].
-    pub async fn present_async_widget<E, W>(&mut self, widget: W) -> Result<bool, E>
+    /// Before creating and presenting a widget, [`Self::masure_widths`] should
+    /// be called. There is no need to call [`Self::autoresize`].
+    pub async fn present_async_widget<E, W>(&mut self, widget: W) -> Result<(), E>
     where
         E: From<io::Error>,
         W: AsyncWidget<E>,
     {
         self.autoresize()?;
         widget.draw(self.frame()).await?;
-        let dirty = self.present()?;
-        Ok(dirty)
+        self.present()?;
+        Ok(())
     }
 
     fn draw_differences(&mut self) -> io::Result<()> {

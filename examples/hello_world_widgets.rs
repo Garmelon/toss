@@ -22,7 +22,11 @@ fn widget() -> impl Widget<io::Error> {
 }
 
 fn render_frame(term: &mut Terminal) {
-    while term.present_widget(widget()).unwrap() {}
+    let mut dirty = true;
+    while dirty {
+        dirty = term.measure_widths().unwrap();
+        term.present_widget(widget()).unwrap();
+    }
 }
 
 fn main() {
