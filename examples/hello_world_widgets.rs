@@ -1,11 +1,11 @@
-use std::convert::Infallible;
+use std::io;
 
 use crossterm::event::Event;
 use crossterm::style::Stylize;
 use toss::widgets::{BorderLook, Text};
 use toss::{Style, Styled, Terminal, Widget, WidgetExt};
 
-fn widget() -> impl Widget<Infallible> {
+fn widget() -> impl Widget<io::Error> {
     let styled = Styled::new("Hello world!", Style::new().dark_green())
         .then_plain("\n")
         .then("Press any key to exit", Style::new().on_dark_blue());
@@ -22,19 +22,13 @@ fn widget() -> impl Widget<Infallible> {
 }
 
 fn render_frame(term: &mut Terminal) {
-    loop {
-        // Must be called before rendering, otherwise the terminal has out-of-date
-        // size information and will present garbage.
+    // Must be called before rendering, otherwise the terminal has out-of-date
+    // size information and will present garbage.
+    term.autoresize().unwrap();
+    widget().draw(term.frame()).unwrap();
+    while term.present().unwrap() {
         term.autoresize().unwrap();
-
         widget().draw(term.frame()).unwrap();
-        term.present().unwrap();
-
-        if term.measuring_required() {
-            term.measure_widths().unwrap();
-        } else {
-            break;
-        }
     }
 }
 

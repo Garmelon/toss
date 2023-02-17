@@ -12,19 +12,13 @@ fn draw(f: &mut Frame) {
 }
 
 fn render_frame(term: &mut Terminal) {
-    loop {
-        // Must be called before rendering, otherwise the terminal has out-of-date
-        // size information and will present garbage.
+    // Must be called before rendering, otherwise the terminal has out-of-date
+    // size information and will present garbage.
+    term.autoresize().unwrap();
+    draw(term.frame());
+    while term.present().unwrap() {
         term.autoresize().unwrap();
-
         draw(term.frame());
-        term.present().unwrap();
-
-        if term.measuring_required() {
-            term.measure_widths().unwrap();
-        } else {
-            break;
-        }
     }
 }
 
