@@ -40,8 +40,8 @@ impl WidthDb {
     ///
     /// If the grapheme is a tab, the column is used to determine its width.
     ///
-    /// If the width has not been measured yet, it is estimated using the
-    /// Unicode Standard Annex #11.
+    /// If the width has not been measured yet or measurements are turned off,
+    /// it is estimated using the Unicode Standard Annex #11.
     pub fn grapheme_width(&mut self, grapheme: &str, col: usize) -> u8 {
         assert_eq!(Some(grapheme), grapheme.graphemes(true).next());
         if grapheme == "\t" {
@@ -62,8 +62,8 @@ impl WidthDb {
     ///
     /// If a grapheme is a tab, its column is used to determine its width.
     ///
-    /// If the width of a grapheme has not been measured yet, it is estimated
-    /// using the Unicode Standard Annex #11.
+    /// If the width of a grapheme has not been measured yet or measurements are
+    /// turned off, it is estimated using the Unicode Standard Annex #11.
     pub fn width(&mut self, s: &str) -> usize {
         let mut total: usize = 0;
         for grapheme in s.graphemes(true) {
@@ -72,6 +72,14 @@ impl WidthDb {
         total
     }
 
+    /// Perform primitive word wrapping with the specified maximum width.
+    ///
+    /// Returns the byte offsets at which the string should be split into lines.
+    /// An offset of 1 would mean the first line contains only a single byte.
+    /// These offsets lie on grapheme boundaries.
+    ///
+    /// This function does not support bidirectional script. It assumes the
+    /// entire text has the same direction.
     pub fn wrap(&mut self, text: &str, width: usize) -> Vec<usize> {
         wrap::wrap(self, text, width)
     }
