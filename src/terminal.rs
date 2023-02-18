@@ -216,7 +216,7 @@ impl Terminal {
 
     /// Display a [`Widget`] on the screen.
     ///
-    /// Before creating and presenting a widget, [`Self::masure_widths`] should
+    /// Before creating and presenting a widget, [`Self::measure_widths`] should
     /// be called. There is no need to call [`Self::autoresize`].
     pub fn present_widget<E, W>(&mut self, widget: W) -> Result<(), E>
     where
@@ -231,7 +231,7 @@ impl Terminal {
 
     /// Display an [`AsyncWidget`] on the screen.
     ///
-    /// Before creating and presenting a widget, [`Self::masure_widths`] should
+    /// Before creating and presenting a widget, [`Self::measure_widths`] should
     /// be called. There is no need to call [`Self::autoresize`].
     pub async fn present_async_widget<E, W>(&mut self, widget: W) -> Result<(), E>
     where
