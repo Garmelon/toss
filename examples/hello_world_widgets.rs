@@ -24,8 +24,8 @@ fn widget() -> impl Widget<io::Error> {
 fn render_frame(term: &mut Terminal) {
     let mut dirty = true;
     while dirty {
-        dirty = term.measure_widths().unwrap();
         term.present_widget(widget()).unwrap();
+        dirty = term.measure_widths().unwrap();
     }
 }
 
