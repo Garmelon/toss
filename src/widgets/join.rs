@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Pos, Size, Widget};
 
-use super::{Either2, Either3};
+use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 
 // The following algorithm has three goals, listed in order of importance:
 //
@@ -511,238 +511,174 @@ where
     }
 }
 
-pub struct JoinH2<I1, I2>(JoinH<Either2<I1, I2>>);
+macro_rules! mk_join {
+    (
+        $name:ident: $base:ident + $either:ident {
+            $( $arg:ident: $constr:ident ($ty:ident), )+
+        }
+    ) => {
+        pub struct $name< $( $ty ),+ >($base<$either< $( $ty ),+ >>);
 
-impl<I1, I2> JoinH2<I1, I2> {
-    pub fn new(left: JoinSegment<I1>, right: JoinSegment<I2>) -> Self {
-        Self(JoinH::new(vec![
-            JoinSegment {
-                inner: Either2::First(left.inner),
-                weight: left.weight,
-            },
-            JoinSegment {
-                inner: Either2::Second(right.inner),
-                weight: right.weight,
-            },
-        ]))
+        impl< $( $ty ),+ > $name< $( $ty ),+ > {
+            pub fn new( $( $arg: JoinSegment<$ty> ),+ ) -> Self {
+                Self($base::new(vec![ $(
+                    JoinSegment {
+                        inner: $either::$constr($arg.inner),
+                        weight: $arg.weight,
+                    },
+                )+ ]))
+            }
+        }
+
+        impl<E, $( $ty ),+ > Widget<E> for $name< $( $ty ),+ >
+        where
+            $( $ty: Widget<E>, )+
+        {
+            fn size(
+                &self,
+                frame: &mut Frame,
+                max_width: Option<u16>,
+                max_height: Option<u16>,
+            ) -> Result<Size, E> {
+                self.0.size(frame, max_width, max_height)
+            }
+
+            fn draw(self, frame: &mut Frame) -> Result<(), E> {
+                self.0.draw(frame)
+            }
+        }
+
+        #[async_trait]
+        impl<E, $( $ty ),+ > AsyncWidget<E> for $name< $( $ty ),+ >
+        where
+            $( $ty: AsyncWidget<E> + Send + Sync, )+
+        {
+            async fn size(
+                &self,
+                frame: &mut Frame,
+                max_width: Option<u16>,
+                max_height: Option<u16>,
+            ) -> Result<Size, E> {
+                self.0.size(frame, max_width, max_height).await
+            }
+
+            async fn draw(self, frame: &mut Frame) -> Result<(), E> {
+                self.0.draw(frame).await
+            }
+        }
+    };
+}
+
+mk_join! {
+    JoinH2: JoinH + Either2 {
+        first: First(I1),
+        second: Second(I2),
     }
 }
 
-impl<E, I1, I2> Widget<E> for JoinH2<I1, I2>
-where
-    I1: Widget<E>,
-    I2: Widget<E>,
-{
-    fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height)
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame)
+mk_join! {
+    JoinH3: JoinH + Either3 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
     }
 }
 
-#[async_trait]
-impl<E, I1, I2> AsyncWidget<E> for JoinH2<I1, I2>
-where
-    I1: AsyncWidget<E> + Send + Sync,
-    I2: AsyncWidget<E> + Send + Sync,
-{
-    async fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height).await
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame).await
+mk_join! {
+    JoinH4: JoinH + Either4 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
     }
 }
 
-pub struct JoinH3<I1, I2, I3>(JoinH<Either3<I1, I2, I3>>);
-
-impl<I1, I2, I3> JoinH3<I1, I2, I3> {
-    pub fn new(left: JoinSegment<I1>, middle: JoinSegment<I2>, right: JoinSegment<I3>) -> Self {
-        Self(JoinH::new(vec![
-            JoinSegment {
-                inner: Either3::First(left.inner),
-                weight: left.weight,
-            },
-            JoinSegment {
-                inner: Either3::Second(middle.inner),
-                weight: middle.weight,
-            },
-            JoinSegment {
-                inner: Either3::Third(right.inner),
-                weight: right.weight,
-            },
-        ]))
+mk_join! {
+    JoinH5: JoinH + Either5 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
+        fifth: Fifth(I5),
     }
 }
 
-impl<E, I1, I2, I3> Widget<E> for JoinH3<I1, I2, I3>
-where
-    I1: Widget<E>,
-    I2: Widget<E>,
-    I3: Widget<E>,
-{
-    fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height)
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame)
+mk_join! {
+    JoinH6: JoinH + Either6 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
+        fifth: Fifth(I5),
+        sixth: Sixth(I6),
     }
 }
 
-#[async_trait]
-impl<E, I1, I2, I3> AsyncWidget<E> for JoinH3<I1, I2, I3>
-where
-    I1: AsyncWidget<E> + Send + Sync,
-    I2: AsyncWidget<E> + Send + Sync,
-    I3: AsyncWidget<E> + Send + Sync,
-{
-    async fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height).await
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame).await
+mk_join! {
+    JoinH7: JoinH + Either7 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
+        fifth: Fifth(I5),
+        sixth: Sixth(I6),
+        seventh: Seventh(I7),
     }
 }
 
-pub struct JoinV2<I1, I2>(JoinV<Either2<I1, I2>>);
-
-impl<I1, I2> JoinV2<I1, I2> {
-    pub fn new(top: JoinSegment<I1>, bottom: JoinSegment<I2>) -> Self {
-        Self(JoinV::new(vec![
-            JoinSegment {
-                inner: Either2::First(top.inner),
-                weight: top.weight,
-            },
-            JoinSegment {
-                inner: Either2::Second(bottom.inner),
-                weight: bottom.weight,
-            },
-        ]))
+mk_join! {
+    JoinV2: JoinV + Either2 {
+        first: First(I1),
+        second: Second(I2),
     }
 }
 
-impl<E, I1, I2> Widget<E> for JoinV2<I1, I2>
-where
-    I1: Widget<E>,
-    I2: Widget<E>,
-{
-    fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height)
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame)
+mk_join! {
+    JoinV3: JoinV + Either3 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
     }
 }
 
-#[async_trait]
-impl<E, I1, I2> AsyncWidget<E> for JoinV2<I1, I2>
-where
-    I1: AsyncWidget<E> + Send + Sync,
-    I2: AsyncWidget<E> + Send + Sync,
-{
-    async fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height).await
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame).await
+mk_join! {
+    JoinV4: JoinV + Either4 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
     }
 }
 
-pub struct JoinV3<I1, I2, I3>(JoinV<Either3<I1, I2, I3>>);
-
-impl<I1, I2, I3> JoinV3<I1, I2, I3> {
-    pub fn new(top: JoinSegment<I1>, middle: JoinSegment<I2>, bottom: JoinSegment<I3>) -> Self {
-        Self(JoinV::new(vec![
-            JoinSegment {
-                inner: Either3::First(top.inner),
-                weight: top.weight,
-            },
-            JoinSegment {
-                inner: Either3::Second(middle.inner),
-                weight: middle.weight,
-            },
-            JoinSegment {
-                inner: Either3::Third(bottom.inner),
-                weight: bottom.weight,
-            },
-        ]))
+mk_join! {
+    JoinV5: JoinV + Either5 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
+        fifth: Fifth(I5),
     }
 }
 
-impl<E, I1, I2, I3> Widget<E> for JoinV3<I1, I2, I3>
-where
-    I1: Widget<E>,
-    I2: Widget<E>,
-    I3: Widget<E>,
-{
-    fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height)
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame)
+mk_join! {
+    JoinV6: JoinV + Either6 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
+        fifth: Fifth(I5),
+        sixth: Sixth(I6),
     }
 }
 
-#[async_trait]
-impl<E, I1, I2, I3> AsyncWidget<E> for JoinV3<I1, I2, I3>
-where
-    I1: AsyncWidget<E> + Send + Sync,
-    I2: AsyncWidget<E> + Send + Sync,
-    I3: AsyncWidget<E> + Send + Sync,
-{
-    async fn size(
-        &self,
-        frame: &mut Frame,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.size(frame, max_width, max_height).await
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.draw(frame).await
+mk_join! {
+    JoinV7: JoinV + Either7 {
+        first: First(I1),
+        second: Second(I2),
+        third: Third(I3),
+        fourth: Fourth(I4),
+        fifth: Fifth(I5),
+        sixth: Sixth(I6),
+        seventh: Seventh(I7),
     }
 }
