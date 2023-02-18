@@ -49,12 +49,12 @@ pub trait WidgetExt: Sized {
         Float::new(self)
     }
 
-    fn below<W>(self, top: W) -> Layer<Self, W> {
-        Layer::new(self, top)
+    fn below<W>(self, above: W) -> Layer<Self, W> {
+        Layer::new(self, above)
     }
 
-    fn above<W>(self, bottom: W) -> Layer<W, Self> {
-        Layer::new(bottom, self)
+    fn above<W>(self, below: W) -> Layer<W, Self> {
+        Layer::new(below, self)
     }
 
     fn padding(self) -> Padding<Self> {

@@ -3,17 +3,17 @@ use async_trait::async_trait;
 use crate::{AsyncWidget, Frame, Size, Widget};
 
 pub struct Layer<I1, I2> {
-    bottom: I1,
-    top: I2,
+    below: I1,
+    above: I2,
 }
 
 impl<I1, I2> Layer<I1, I2> {
-    pub fn new(bottom: I1, top: I2) -> Self {
-        Self { bottom, top }
+    pub fn new(below: I1, above: I2) -> Self {
+        Self { below, above }
     }
 
-    fn size(bottom: Size, top: Size) -> Size {
-        Size::new(bottom.width.max(top.width), bottom.height.max(top.height))
+    fn size(below: Size, above: Size) -> Size {
+        Size::new(below.width.max(above.width), below.height.max(above.height))
     }
 }
 
@@ -28,14 +28,14 @@ where
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let bottom = self.bottom.size(frame, max_width, max_height)?;
-        let top = self.top.size(frame, max_width, max_height)?;
+        let bottom = self.below.size(frame, max_width, max_height)?;
+        let top = self.above.size(frame, max_width, max_height)?;
         Ok(Self::size(bottom, top))
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.bottom.draw(frame)?;
-        self.top.draw(frame)?;
+        self.below.draw(frame)?;
+        self.above.draw(frame)?;
         Ok(())
     }
 }
@@ -52,14 +52,14 @@ where
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let bottom = self.bottom.size(frame, max_width, max_height).await?;
-        let top = self.top.size(frame, max_width, max_height).await?;
+        let bottom = self.below.size(frame, max_width, max_height).await?;
+        let top = self.above.size(frame, max_width, max_height).await?;
         Ok(Self::size(bottom, top))
     }
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.bottom.draw(frame).await?;
-        self.top.draw(frame).await?;
+        self.below.draw(frame).await?;
+        self.above.draw(frame).await?;
         Ok(())
     }
 }
