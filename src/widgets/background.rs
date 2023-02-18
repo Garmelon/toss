@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget};
 
+#[derive(Debug, Clone, Copy)]
 pub struct Background<I> {
     inner: I,
     style: Style,

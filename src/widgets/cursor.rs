@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Pos, Size, Widget};
 
+#[derive(Debug, Clone, Copy)]
 pub struct Cursor<I> {
     inner: I,
     at: Pos,

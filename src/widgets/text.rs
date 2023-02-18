@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Pos, Size, Styled, Widget, WidthDb};
 
+#[derive(Debug, Clone)]
 pub struct Text {
     styled: Styled,
     wrap: bool,

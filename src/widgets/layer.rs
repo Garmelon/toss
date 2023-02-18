@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Size, Widget};
 
+#[derive(Debug, Clone, Copy)]
 pub struct Layer<I1, I2> {
     below: I1,
     above: I2,

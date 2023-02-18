@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Size, Widget};
 
+#[derive(Debug, Clone, Copy)]
 pub enum Either<I1, I2> {
     First(I1),
     Second(I2),

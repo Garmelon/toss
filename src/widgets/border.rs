@@ -86,6 +86,7 @@ impl Default for BorderLook {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Border<I> {
     inner: I,
     look: BorderLook,
