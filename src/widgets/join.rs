@@ -1,5 +1,9 @@
 use std::cmp::Ordering;
 
+use async_trait::async_trait;
+
+use crate::{AsyncWidget, Frame, Pos, Size, Widget};
+
 // The following algorithm has three goals, listed in order of importance:
 //
 // 1. Use the available space
@@ -48,6 +52,22 @@ use std::cmp::Ordering;
 struct Segment {
     size: u16,
     weight: f32,
+}
+
+impl Segment {
+    fn horizontal<I>(size: Size, segment: &JoinSegment<I>) -> Self {
+        Self {
+            size: size.width,
+            weight: segment.weight,
+        }
+    }
+
+    fn vertical<I>(size: Size, segment: &JoinSegment<I>) -> Self {
+        Self {
+            size: size.height,
+            weight: segment.weight,
+        }
+    }
 }
 
 fn balance(segments: &mut [Segment], available: u16) {
@@ -187,5 +207,304 @@ fn shrink(segments: &mut [Segment], mut available: u16) {
     assert!(remaining as usize <= segments.len());
     for segment in segments.into_iter().take(remaining.into()) {
         segment.size += 1;
+    }
+}
+
+pub struct JoinSegment<I> {
+    inner: I,
+    weight: f32,
+}
+
+impl<I> JoinSegment<I> {
+    pub fn new(inner: I) -> Self {
+        Self { inner, weight: 1.0 }
+    }
+
+    pub fn weight(mut self, weight: f32) -> Self {
+        assert!(weight >= 0.0);
+        self.weight = weight;
+        self
+    }
+}
+
+pub struct JoinH<I> {
+    segments: Vec<JoinSegment<I>>,
+}
+
+impl<I> JoinH<I> {
+    pub fn new(segments: Vec<JoinSegment<I>>) -> Self {
+        Self { segments }
+    }
+}
+
+impl<E, I> Widget<E> for JoinH<I>
+where
+    I: Widget<E>,
+{
+    fn size(
+        &self,
+        frame: &mut Frame,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        if let Some(max_width) = max_width {
+            let mut balanced_segments = vec![];
+            for segment in &self.segments {
+                let size = segment.inner.size(frame, Some(max_width), max_height)?;
+                balanced_segments.push(Segment::horizontal(size, segment));
+            }
+            balance(&mut balanced_segments, max_width);
+
+            let mut width = 0;
+            let mut height = 0;
+            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
+                let size = segment.inner.size(frame, Some(balanced.size), max_height)?;
+                width += size.width;
+                height = height.max(size.height);
+            }
+            Ok(Size::new(width, height))
+        } else {
+            let mut width = 0;
+            let mut height = 0;
+            for segment in &self.segments {
+                let size = segment.inner.size(frame, max_width, max_height)?;
+                width += size.width;
+                height = height.max(size.height);
+            }
+            Ok(Size::new(width, height))
+        }
+    }
+
+    fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        let size = frame.size();
+        let max_width = Some(size.width);
+        let max_height = Some(size.height);
+
+        let mut balanced_segments = vec![];
+        for segment in &self.segments {
+            let size = segment.inner.size(frame, max_width, max_height)?;
+            balanced_segments.push(Segment::horizontal(size, segment));
+        }
+        balance(&mut balanced_segments, size.width);
+
+        let mut x = 0;
+        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
+            frame.push(Pos::new(x, 0), Size::new(balanced.size, size.height));
+            segment.inner.draw(frame)?;
+            frame.pop();
+            x += balanced.size as i32;
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl<E, I> AsyncWidget<E> for JoinH<I>
+where
+    I: AsyncWidget<E> + Send + Sync,
+{
+    async fn size(
+        &self,
+        frame: &mut Frame,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        if let Some(max_width) = max_width {
+            let mut balanced_segments = vec![];
+            for segment in &self.segments {
+                let size = segment
+                    .inner
+                    .size(frame, Some(max_width), max_height)
+                    .await?;
+                balanced_segments.push(Segment::horizontal(size, segment));
+            }
+            balance(&mut balanced_segments, max_width);
+
+            let mut width = 0;
+            let mut height = 0;
+            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
+                let size = segment
+                    .inner
+                    .size(frame, Some(balanced.size), max_height)
+                    .await?;
+                width += size.width;
+                height = height.max(size.height);
+            }
+            Ok(Size::new(width, height))
+        } else {
+            let mut width = 0;
+            let mut height = 0;
+            for segment in &self.segments {
+                let size = segment.inner.size(frame, max_width, max_height).await?;
+                width += size.width;
+                height = height.max(size.height);
+            }
+            Ok(Size::new(width, height))
+        }
+    }
+
+    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        let size = frame.size();
+        let max_width = Some(size.width);
+        let max_height = Some(size.height);
+
+        let mut balanced_segments = vec![];
+        for segment in &self.segments {
+            let size = segment.inner.size(frame, max_width, max_height).await?;
+            balanced_segments.push(Segment::horizontal(size, segment));
+        }
+        balance(&mut balanced_segments, size.width);
+
+        let mut x = 0;
+        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
+            frame.push(Pos::new(x, 0), Size::new(balanced.size, size.height));
+            segment.inner.draw(frame).await?;
+            frame.pop();
+            x += balanced.size as i32;
+        }
+
+        Ok(())
+    }
+}
+
+pub struct JoinV<I> {
+    segments: Vec<JoinSegment<I>>,
+}
+
+impl<I> JoinV<I> {
+    pub fn new(segments: Vec<JoinSegment<I>>) -> Self {
+        Self { segments }
+    }
+}
+
+impl<E, I> Widget<E> for JoinV<I>
+where
+    I: Widget<E>,
+{
+    fn size(
+        &self,
+        frame: &mut Frame,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        if let Some(max_height) = max_height {
+            let mut balanced_segments = vec![];
+            for segment in &self.segments {
+                let size = segment.inner.size(frame, max_width, Some(max_height))?;
+                balanced_segments.push(Segment::vertical(size, segment));
+            }
+            balance(&mut balanced_segments, max_height);
+
+            let mut width = 0;
+            let mut height = 0;
+            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
+                let size = segment.inner.size(frame, max_width, Some(balanced.size))?;
+                width = width.max(size.width);
+                height += size.height;
+            }
+            Ok(Size::new(width, height))
+        } else {
+            let mut width = 0;
+            let mut height = 0;
+            for segment in &self.segments {
+                let size = segment.inner.size(frame, max_width, max_height)?;
+                width = width.max(size.width);
+                height += size.height;
+            }
+            Ok(Size::new(width, height))
+        }
+    }
+
+    fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        let size = frame.size();
+        let max_width = Some(size.width);
+        let max_height = Some(size.height);
+
+        let mut balanced_segments = vec![];
+        for segment in &self.segments {
+            let size = segment.inner.size(frame, max_width, max_height)?;
+            balanced_segments.push(Segment::vertical(size, segment));
+        }
+        balance(&mut balanced_segments, size.height);
+
+        let mut y = 0;
+        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
+            frame.push(Pos::new(0, y), Size::new(size.width, balanced.size));
+            segment.inner.draw(frame)?;
+            frame.pop();
+            y += balanced.size as i32;
+        }
+
+        Ok(())
+    }
+}
+
+#[async_trait]
+impl<E, I> AsyncWidget<E> for JoinV<I>
+where
+    I: AsyncWidget<E> + Send + Sync,
+{
+    async fn size(
+        &self,
+        frame: &mut Frame,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        if let Some(max_height) = max_height {
+            let mut balanced_segments = vec![];
+            for segment in &self.segments {
+                let size = segment
+                    .inner
+                    .size(frame, max_width, Some(max_height))
+                    .await?;
+                balanced_segments.push(Segment::vertical(size, segment));
+            }
+            balance(&mut balanced_segments, max_height);
+
+            let mut width = 0;
+            let mut height = 0;
+            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
+                let size = segment
+                    .inner
+                    .size(frame, max_width, Some(balanced.size))
+                    .await?;
+                width = width.max(size.width);
+                height += size.height;
+            }
+            Ok(Size::new(width, height))
+        } else {
+            let mut width = 0;
+            let mut height = 0;
+            for segment in &self.segments {
+                let size = segment.inner.size(frame, max_width, max_height).await?;
+                width = width.max(size.width);
+                height += size.height;
+            }
+            Ok(Size::new(width, height))
+        }
+    }
+
+    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        let size = frame.size();
+        let max_width = Some(size.width);
+        let max_height = Some(size.height);
+
+        let mut balanced_segments = vec![];
+        for segment in &self.segments {
+            let size = segment.inner.size(frame, max_width, max_height).await?;
+            balanced_segments.push(Segment::vertical(size, segment));
+        }
+        balance(&mut balanced_segments, size.height);
+
+        let mut y = 0;
+        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
+            frame.push(Pos::new(0, y), Size::new(size.width, balanced.size));
+            segment.inner.draw(frame).await?;
+            frame.pop();
+            y += balanced.size as i32;
+        }
+
+        Ok(())
     }
 }
