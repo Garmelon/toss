@@ -19,16 +19,19 @@ impl<I> Float<I> {
     }
 
     pub fn horizontal(mut self, position: f32) -> Self {
+        assert!((0.0..=1.0).contains(&position));
         self.horizontal = Some(position);
         self
     }
 
     pub fn vertical(mut self, position: f32) -> Self {
+        assert!((0.0..=1.0).contains(&position));
         self.vertical = Some(position);
         self
     }
 
     pub fn all(self, position: f32) -> Self {
+        assert!((0.0..=1.0).contains(&position));
         self.horizontal(position).vertical(position)
     }
 
