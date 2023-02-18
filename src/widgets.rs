@@ -7,6 +7,7 @@ mod float;
 mod join;
 mod layer;
 mod padding;
+mod resize;
 mod text;
 
 pub use background::*;
@@ -18,4 +19,5 @@ pub use float::*;
 pub use join::*;
 pub use layer::*;
 pub use padding::*;
+pub use resize::*;
 pub use text::*;
