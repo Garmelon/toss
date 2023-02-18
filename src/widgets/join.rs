@@ -105,23 +105,23 @@ fn grow(segments: &mut [Segment], mut available: u16) {
             total_weight = segments.len() as f32;
         }
 
-        let mut changed = false;
+        let mut removed = 0;
         segments.retain(|s| {
             let allotment = s.weight / total_weight * available as f32;
             if (s.size as f32) < allotment {
                 return true; // May need to grow
             }
-            available -= s.size;
-            changed = true;
+            removed += s.size;
             false
         });
+        available -= removed;
 
         // If all segments were at least as large as their allotments, we would
         // be trying to shrink, not grow them. Hence, there must be at least one
         // segment that is smaller than its allotment.
         assert!(!segments.is_empty());
 
-        if !changed {
+        if removed == 0 {
             break; // All remaining segments are smaller than their allotments
         }
     }
