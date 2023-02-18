@@ -4,7 +4,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Pos, Size, Widget};
 
-use super::{Either, Either3};
+use super::{Either2, Either3};
 
 // The following algorithm has three goals, listed in order of importance:
 //
@@ -511,17 +511,17 @@ where
     }
 }
 
-pub struct JoinH2<I1, I2>(JoinH<Either<I1, I2>>);
+pub struct JoinH2<I1, I2>(JoinH<Either2<I1, I2>>);
 
 impl<I1, I2> JoinH2<I1, I2> {
     pub fn new(left: JoinSegment<I1>, right: JoinSegment<I2>) -> Self {
         Self(JoinH::new(vec![
             JoinSegment {
-                inner: Either::First(left.inner),
+                inner: Either2::First(left.inner),
                 weight: left.weight,
             },
             JoinSegment {
-                inner: Either::Second(right.inner),
+                inner: Either2::Second(right.inner),
                 weight: right.weight,
             },
         ]))
@@ -629,17 +629,17 @@ where
     }
 }
 
-pub struct JoinV2<I1, I2>(JoinV<Either<I1, I2>>);
+pub struct JoinV2<I1, I2>(JoinV<Either2<I1, I2>>);
 
 impl<I1, I2> JoinV2<I1, I2> {
     pub fn new(top: JoinSegment<I1>, bottom: JoinSegment<I2>) -> Self {
         Self(JoinV::new(vec![
             JoinSegment {
-                inner: Either::First(top.inner),
+                inner: Either2::First(top.inner),
                 weight: top.weight,
             },
             JoinSegment {
-                inner: Either::Second(bottom.inner),
+                inner: Either2::Second(bottom.inner),
                 weight: bottom.weight,
             },
         ]))

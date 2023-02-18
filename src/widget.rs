@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::widgets::{
-    Background, Border, Either, Either3, Float, JoinSegment, Layer, Padding, Resize,
+    Background, Border, Either2, Either3, Float, JoinSegment, Layer, Padding, Resize,
 };
 use crate::{Frame, Size};
 
@@ -39,12 +39,12 @@ pub trait WidgetExt: Sized {
         Border::new(self)
     }
 
-    fn first<W>(self) -> Either<Self, W> {
-        Either::First(self)
+    fn first2<W2>(self) -> Either2<Self, W2> {
+        Either2::First(self)
     }
 
-    fn second<W>(self) -> Either<W, Self> {
-        Either::Second(self)
+    fn second2<W1>(self) -> Either2<W1, Self> {
+        Either2::Second(self)
     }
 
     fn first3<W2, W3>(self) -> Either3<Self, W2, W3> {
