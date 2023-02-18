@@ -12,7 +12,7 @@ impl<I> Background<I> {
     pub fn new(inner: I) -> Self {
         Self {
             inner,
-            style: Style::default(),
+            style: Style::new().opaque(),
         }
     }
 
