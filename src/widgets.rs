@@ -1,6 +1,7 @@
 mod background;
 mod border;
 mod cursor;
+mod editor;
 mod either;
 mod empty;
 mod float;
@@ -13,6 +14,7 @@ mod text;
 pub use background::*;
 pub use border::*;
 pub use cursor::*;
+pub use editor::*;
 pub use either::*;
 pub use empty::*;
 pub use float::*;
