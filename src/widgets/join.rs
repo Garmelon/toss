@@ -51,6 +51,8 @@ use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 // removes all segments that are at least as small as their allotment. It then
 // resizes the remaining segments to their allotments.
 
+// TODO Handle overflows and other sizing issues correctly
+
 struct Segment {
     size: u16,
     weight: f32,
@@ -164,30 +166,29 @@ fn shrink(segments: &mut [Segment], mut available: u16) {
             total_weight = segments.len() as f32;
         }
 
-        let mut changed = false;
+        let mut removed = 0;
         segments.retain(|s| {
             let allotment = s.weight / total_weight * available as f32;
             if (s.size as f32) > allotment {
                 return true; // May need to shrink
             }
 
-            // The size subtracted from `available` is always smaller than or
-            // equal to its allotment. It must be smaller in at least one case,
-            // or we wouldn't be shrinking. Since `available` is the sum of all
-            // allotments, it never reaches 0.
-            assert!(available > s.size);
+            // The segment size subtracted from `available` is always smaller
+            // than or equal to its allotment. Since `available` is the sum of
+            // all allotments, it can never go below 0.
+            assert!(s.size <= available);
 
-            available -= s.size;
-            changed = true;
+            removed += s.size;
             false
         });
+        available -= removed;
 
         // If all segments were smaller or the same size as their allotments, we
         // would be trying to grow, not shrink them. Hence, there must be at
         // least one segment bigger than its allotment.
         assert!(!segments.is_empty());
 
-        if !changed {
+        if removed == 0 {
             break; // All segments want more than their weight allows.
         }
     }
