@@ -55,6 +55,7 @@ use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 struct Segment {
     size: u16,
     weight: f32,
+    fixed: bool,
 }
 
 impl Segment {
@@ -62,6 +63,7 @@ impl Segment {
         Self {
             size: size.width,
             weight: segment.weight,
+            fixed: segment.fixed,
         }
     }
 
@@ -69,11 +71,12 @@ impl Segment {
         Self {
             size: size.height,
             weight: segment.weight,
+            fixed: segment.fixed,
         }
     }
 }
 
-fn total_size(segments: &[Segment]) -> u16 {
+fn total_size(segments: &[&mut Segment]) -> u16 {
     let mut total = 0_u16;
     for segment in segments {
         total = total.saturating_add(segment.size);
@@ -85,23 +88,31 @@ fn total_weight(segments: &[&mut Segment]) -> f32 {
     segments.iter().map(|s| s.weight).sum()
 }
 
-fn balance(segments: &mut [Segment], available: u16) {
-    if segments.is_empty() {
+fn balance(segments: &mut [Segment], mut available: u16) {
+    let mut borrowed_segments = segments.iter_mut().collect::<Vec<_>>();
+
+    // Remove fixed segments
+    borrowed_segments.retain(|s| {
+        if !s.fixed {
+            return true;
+        }
+        available = available.saturating_sub(s.size);
+        false
+    });
+
+    if borrowed_segments.is_empty() || available == 0 {
         return;
     }
 
-    match total_size(segments).cmp(&available) {
-        Ordering::Less => grow(segments, available),
-        Ordering::Greater => shrink(segments, available),
+    match total_size(&borrowed_segments).cmp(&available) {
+        Ordering::Less => grow(borrowed_segments, available),
+        Ordering::Greater => shrink(borrowed_segments, available),
         Ordering::Equal => {}
     }
-
-    assert!(available >= segments.iter().map(|s| s.size).sum::<u16>());
 }
 
-fn grow(segments: &mut [Segment], mut available: u16) {
-    assert!(available > total_size(segments));
-    let mut segments = segments.iter_mut().collect::<Vec<_>>();
+fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
+    assert!(available > total_size(&segments));
 
     // Repeatedly remove all segments that do not need to grow, i. e. that are
     // at least as large as their allotment.
@@ -158,9 +169,8 @@ fn grow(segments: &mut [Segment], mut available: u16) {
     }
 }
 
-fn shrink(segments: &mut [Segment], mut available: u16) {
-    assert!(available < total_size(segments));
-    let mut segments = segments.iter_mut().collect::<Vec<_>>();
+fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
+    assert!(available < total_size(&segments));
 
     // Repeatedly remove all segments that do not need to shrink, i. e. that are
     // at least as small as their allotment.
@@ -226,16 +236,26 @@ fn shrink(segments: &mut [Segment], mut available: u16) {
 pub struct JoinSegment<I> {
     inner: I,
     weight: f32,
+    fixed: bool,
 }
 
 impl<I> JoinSegment<I> {
     pub fn new(inner: I) -> Self {
-        Self { inner, weight: 1.0 }
+        Self {
+            inner,
+            weight: 1.0,
+            fixed: false,
+        }
     }
 
     pub fn weight(mut self, weight: f32) -> Self {
         assert!(weight >= 0.0);
         self.weight = weight;
+        self
+    }
+
+    pub fn fixed(mut self, fixed: bool) -> Self {
+        self.fixed = fixed;
         self
     }
 }
@@ -536,6 +556,7 @@ macro_rules! mk_join {
                     JoinSegment {
                         inner: $either::$constr($arg.inner),
                         weight: $arg.weight,
+                        fixed: $arg.fixed,
                     },
                 )+ ]))
             }
