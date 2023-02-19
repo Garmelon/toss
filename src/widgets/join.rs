@@ -51,8 +51,7 @@ use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 // removes all segments that are at least as small as their allotment. It then
 // resizes the remaining segments to their allotments.
 
-// TODO Handle overflows and other sizing issues correctly
-
+#[derive(Debug)]
 struct Segment {
     size: u16,
     weight: f32,
@@ -74,13 +73,24 @@ impl Segment {
     }
 }
 
+fn total_size(segments: &[Segment]) -> u16 {
+    let mut total = 0_u16;
+    for segment in segments {
+        total = total.saturating_add(segment.size);
+    }
+    total
+}
+
+fn total_weight(segments: &[&mut Segment]) -> f32 {
+    segments.iter().map(|s| s.weight).sum()
+}
+
 fn balance(segments: &mut [Segment], available: u16) {
     if segments.is_empty() {
         return;
     }
 
-    let total_size = segments.iter().map(|s| s.size).sum::<u16>();
-    match total_size.cmp(&available) {
+    match total_size(segments).cmp(&available) {
         Ordering::Less => grow(segments, available),
         Ordering::Greater => shrink(segments, available),
         Ordering::Equal => {}
@@ -90,13 +100,13 @@ fn balance(segments: &mut [Segment], available: u16) {
 }
 
 fn grow(segments: &mut [Segment], mut available: u16) {
-    assert!(available > segments.iter().map(|s| s.size).sum::<u16>());
+    assert!(available > total_size(segments));
     let mut segments = segments.iter_mut().collect::<Vec<_>>();
 
     // Repeatedly remove all segments that do not need to grow, i. e. that are
     // at least as large as their allotment.
     loop {
-        let mut total_weight = segments.iter().map(|s| s.weight).sum::<f32>();
+        let mut total_weight = total_weight(&segments);
 
         // If there are no segments with a weight > 0, space is distributed
         // evenly among all remaining segments.
@@ -149,13 +159,13 @@ fn grow(segments: &mut [Segment], mut available: u16) {
 }
 
 fn shrink(segments: &mut [Segment], mut available: u16) {
-    assert!(available < segments.iter().map(|s| s.size).sum::<u16>());
+    assert!(available < total_size(segments));
     let mut segments = segments.iter_mut().collect::<Vec<_>>();
 
     // Repeatedly remove all segments that do not need to shrink, i. e. that are
     // at least as small as their allotment.
     loop {
-        let mut total_weight = segments.iter().map(|s| s.weight).sum::<f32>();
+        let mut total_weight = total_weight(&segments);
 
         // If there are no segments with a weight > 0, space is distributed
         // evenly among all remaining segments.
@@ -258,20 +268,20 @@ where
             }
             balance(&mut balanced_segments, max_width);
 
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
                 let size = segment.inner.size(frame, Some(balanced.size), max_height)?;
-                width += size.width;
+                width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
             Ok(Size::new(width, height))
         } else {
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for segment in &self.segments {
                 let size = segment.inner.size(frame, max_width, max_height)?;
-                width += size.width;
+                width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
             Ok(Size::new(width, height))
@@ -324,23 +334,23 @@ where
             }
             balance(&mut balanced_segments, max_width);
 
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
                 let size = segment
                     .inner
                     .size(frame, Some(balanced.size), max_height)
                     .await?;
-                width += size.width;
+                width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
             Ok(Size::new(width, height))
         } else {
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for segment in &self.segments {
                 let size = segment.inner.size(frame, max_width, max_height).await?;
-                width += size.width;
+                width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
             Ok(Size::new(width, height))
@@ -399,21 +409,21 @@ where
             }
             balance(&mut balanced_segments, max_height);
 
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
                 let size = segment.inner.size(frame, max_width, Some(balanced.size))?;
                 width = width.max(size.width);
-                height += size.height;
+                height = height.saturating_add(size.height);
             }
             Ok(Size::new(width, height))
         } else {
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for segment in &self.segments {
                 let size = segment.inner.size(frame, max_width, max_height)?;
                 width = width.max(size.width);
-                height += size.height;
+                height = height.saturating_add(size.height);
             }
             Ok(Size::new(width, height))
         }
@@ -465,24 +475,24 @@ where
             }
             balance(&mut balanced_segments, max_height);
 
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
                 let size = segment
                     .inner
                     .size(frame, max_width, Some(balanced.size))
                     .await?;
                 width = width.max(size.width);
-                height += size.height;
+                height = height.saturating_add(size.height);
             }
             Ok(Size::new(width, height))
         } else {
-            let mut width = 0;
-            let mut height = 0;
+            let mut width = 0_u16;
+            let mut height = 0_u16;
             for segment in &self.segments {
                 let size = segment.inner.size(frame, max_width, max_height).await?;
                 width = width.max(size.width);
-                height += size.height;
+                height = height.saturating_add(size.height);
             }
             Ok(Size::new(width, height))
         }
