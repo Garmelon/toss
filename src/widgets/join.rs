@@ -55,7 +55,8 @@ use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 struct Segment {
     size: u16,
     weight: f32,
-    fixed: bool,
+    growing: bool,
+    shrinking: bool,
 }
 
 impl Segment {
@@ -63,7 +64,8 @@ impl Segment {
         Self {
             size: size.width,
             weight: segment.weight,
-            fixed: segment.fixed,
+            growing: segment.growing,
+            shrinking: segment.shrinking,
         }
     }
 
@@ -71,7 +73,8 @@ impl Segment {
         Self {
             size: size.height,
             weight: segment.weight,
-            fixed: segment.fixed,
+            growing: segment.growing,
+            shrinking: segment.shrinking,
         }
     }
 }
@@ -88,31 +91,26 @@ fn total_weight(segments: &[&mut Segment]) -> f32 {
     segments.iter().map(|s| s.weight).sum()
 }
 
-fn balance(segments: &mut [Segment], mut available: u16) {
-    let mut borrowed_segments = segments.iter_mut().collect::<Vec<_>>();
-
-    // Remove fixed segments
-    borrowed_segments.retain(|s| {
-        if !s.fixed {
-            return true;
-        }
-        available = available.saturating_sub(s.size);
-        false
-    });
-
-    if borrowed_segments.is_empty() || available == 0 {
-        return;
-    }
-
-    match total_size(&borrowed_segments).cmp(&available) {
-        Ordering::Less => grow(borrowed_segments, available),
-        Ordering::Greater => shrink(borrowed_segments, available),
+fn balance(segments: &mut [Segment], available: u16) {
+    let segments = segments.iter_mut().collect::<Vec<_>>();
+    match total_size(&segments).cmp(&available) {
+        Ordering::Less => grow(segments, available),
+        Ordering::Greater => shrink(segments, available),
         Ordering::Equal => {}
     }
 }
 
 fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
-    assert!(available > total_size(&segments));
+    assert!(available >= total_size(&segments));
+
+    // Only grow segments that can be grown.
+    segments.retain(|s| {
+        if s.growing {
+            return true;
+        }
+        available = available.saturating_sub(s.size);
+        false
+    });
 
     // Repeatedly remove all segments that do not need to grow, i. e. that are
     // at least as large as their allotment.
@@ -139,18 +137,17 @@ fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
         });
         available -= removed;
 
-        // If all segments were at least as large as their allotments, we would
-        // be trying to shrink, not grow them. Hence, there must be at least one
-        // segment that is smaller than its allotment.
-        assert!(!segments.is_empty());
-
         if removed == 0 {
             break; // All remaining segments are smaller than their allotments
         }
     }
 
-    // Size each remaining segment according to its allotment.
     let total_weight = segments.iter().map(|s| s.weight).sum::<f32>();
+    if total_weight <= 0.0 {
+        return; // No more segments left
+    }
+
+    // Size each remaining segment according to its allotment.
     let mut used = 0;
     for segment in &mut segments {
         let allotment = segment.weight / total_weight * available as f32;
@@ -170,7 +167,16 @@ fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
 }
 
 fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
-    assert!(available < total_size(&segments));
+    assert!(available <= total_size(&segments));
+
+    // Only shrink segments that can be shrunk.
+    segments.retain(|s| {
+        if s.shrinking {
+            return true;
+        }
+        available = available.saturating_sub(s.size);
+        false
+    });
 
     // Repeatedly remove all segments that do not need to shrink, i. e. that are
     // at least as small as their allotment.
@@ -203,18 +209,17 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
         });
         available -= removed;
 
-        // If all segments were smaller or the same size as their allotments, we
-        // would be trying to grow, not shrink them. Hence, there must be at
-        // least one segment bigger than its allotment.
-        assert!(!segments.is_empty());
-
         if removed == 0 {
             break; // All segments want more than their weight allows.
         }
     }
 
-    // Size each remaining segment according to its allotment.
     let total_weight = segments.iter().map(|s| s.weight).sum::<f32>();
+    if total_weight <= 0.0 {
+        return; // No more segments left
+    }
+
+    // Size each remaining segment according to its allotment.
     let mut used = 0;
     for segment in &mut segments {
         let allotment = segment.weight / total_weight * available as f32;
@@ -234,9 +239,10 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
 }
 
 pub struct JoinSegment<I> {
-    inner: I,
+    pub inner: I,
     weight: f32,
-    fixed: bool,
+    pub growing: bool,
+    pub shrinking: bool,
 }
 
 impl<I> JoinSegment<I> {
@@ -244,19 +250,37 @@ impl<I> JoinSegment<I> {
         Self {
             inner,
             weight: 1.0,
-            fixed: false,
+            growing: true,
+            shrinking: true,
         }
     }
 
-    pub fn weight(mut self, weight: f32) -> Self {
+    pub fn weight(&self) -> f32 {
+        self.weight
+    }
+
+    pub fn set_weight(&mut self, weight: f32) {
         assert!(weight >= 0.0);
         self.weight = weight;
+    }
+
+    pub fn with_weight(mut self, weight: f32) -> Self {
+        self.set_weight(weight);
         self
     }
 
-    pub fn fixed(mut self, fixed: bool) -> Self {
-        self.fixed = fixed;
+    pub fn with_growing(mut self, enabled: bool) -> Self {
+        self.growing = enabled;
         self
+    }
+
+    pub fn with_shrinking(mut self, enabled: bool) -> Self {
+        self.shrinking = enabled;
+        self
+    }
+
+    pub fn with_fixed(self, fixed: bool) -> Self {
+        self.with_growing(!fixed).with_shrinking(!fixed)
     }
 }
 
@@ -556,7 +580,8 @@ macro_rules! mk_join {
                     JoinSegment {
                         inner: $either::$constr($arg.inner),
                         weight: $arg.weight,
-                        fixed: $arg.fixed,
+                        growing: $arg.growing,
+                        shrinking: $arg.shrinking,
                     },
                 )+ ]))
             }
