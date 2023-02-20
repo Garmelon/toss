@@ -3,11 +3,11 @@ use async_trait::async_trait;
 use crate::{AsyncWidget, Frame, Size, Widget};
 
 pub struct Resize<I> {
-    inner: I,
-    min_width: Option<u16>,
-    min_height: Option<u16>,
-    max_width: Option<u16>,
-    max_height: Option<u16>,
+    pub inner: I,
+    pub min_width: Option<u16>,
+    pub min_height: Option<u16>,
+    pub max_width: Option<u16>,
+    pub max_height: Option<u16>,
 }
 
 impl<I> Resize<I> {
@@ -21,22 +21,22 @@ impl<I> Resize<I> {
         }
     }
 
-    pub fn min_width(mut self, width: u16) -> Self {
+    pub fn with_min_width(mut self, width: u16) -> Self {
         self.min_width = Some(width);
         self
     }
 
-    pub fn min_height(mut self, height: u16) -> Self {
+    pub fn with_min_height(mut self, height: u16) -> Self {
         self.min_height = Some(height);
         self
     }
 
-    pub fn max_width(mut self, width: u16) -> Self {
+    pub fn with_max_width(mut self, width: u16) -> Self {
         self.max_width = Some(width);
         self
     }
 
-    pub fn max_height(mut self, height: u16) -> Self {
+    pub fn with_max_height(mut self, height: u16) -> Self {
         self.max_height = Some(height);
         self
     }

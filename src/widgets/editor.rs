@@ -340,8 +340,8 @@ impl Default for EditorState {
 pub struct Editor<'a> {
     state: &'a mut EditorState,
     highlighted: Styled,
-    hidden: Option<Styled>,
-    focus: bool,
+    pub hidden: Option<Styled>,
+    pub focus: bool,
 }
 
 impl Editor<'_> {
@@ -349,26 +349,42 @@ impl Editor<'_> {
         self.state
     }
 
-    pub fn highlight<F>(mut self, highlight: F) -> Self
+    pub fn text(&self) -> &Styled {
+        &self.highlighted
+    }
+
+    pub fn highlight<F>(&mut self, highlight: F)
     where
         F: FnOnce(&str) -> Styled,
     {
         self.highlighted = highlight(&self.state.text);
         assert_eq!(self.state.text, self.highlighted.text());
+    }
+
+    pub fn with_highlight<F>(mut self, highlight: F) -> Self
+    where
+        F: FnOnce(&str) -> Styled,
+    {
+        self.highlight(highlight);
         self
     }
 
-    pub fn focus(mut self, active: bool) -> Self {
-        self.focus = active;
+    pub fn with_visible(mut self) -> Self {
+        self.hidden = None;
         self
     }
 
-    pub fn hidden(self) -> Self {
-        self.hidden_with_placeholder(("<hidden>", Style::new().grey().italic()))
-    }
-
-    pub fn hidden_with_placeholder<S: Into<Styled>>(mut self, placeholder: S) -> Self {
+    pub fn with_hidden<S: Into<Styled>>(mut self, placeholder: S) -> Self {
         self.hidden = Some(placeholder.into());
+        self
+    }
+
+    pub fn with_hidden_default_placeholder(self) -> Self {
+        self.with_hidden(("<hidden>", Style::new().grey().italic()))
+    }
+
+    pub fn with_focus(mut self, active: bool) -> Self {
+        self.focus = active;
         self
     }
 

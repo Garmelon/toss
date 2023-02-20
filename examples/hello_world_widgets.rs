@@ -11,14 +11,14 @@ fn widget() -> impl Widget<io::Error> {
         .then("Press any key to exit", Style::new().on_dark_blue());
     Text::new(styled)
         .padding()
-        .horizontal(1)
+        .with_horizontal(1)
         .border()
-        .look(BorderLook::LINE_DOUBLE)
-        .style(Style::new().dark_red())
+        .with_look(BorderLook::LINE_DOUBLE)
+        .with_style(Style::new().dark_red())
         .background()
-        .style(Style::new().on_yellow().opaque())
+        .with_style(Style::new().on_yellow().opaque())
         .float()
-        .all(0.5)
+        .with_all(0.5)
 }
 
 fn render_frame(term: &mut Terminal) {

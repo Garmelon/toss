@@ -4,8 +4,8 @@ use crate::{AsyncWidget, Frame, Pos, Size, Styled, Widget, WidthDb};
 
 #[derive(Debug, Clone)]
 pub struct Text {
-    styled: Styled,
-    wrap: bool,
+    pub styled: Styled,
+    pub wrap: bool,
 }
 
 impl Text {
@@ -16,8 +16,8 @@ impl Text {
         }
     }
 
-    pub fn wrap(mut self, wrap: bool) -> Self {
-        self.wrap = wrap;
+    pub fn with_wrap(mut self, active: bool) -> Self {
+        self.wrap = active;
         self
     }
 

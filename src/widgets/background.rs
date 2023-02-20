@@ -4,8 +4,8 @@ use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Background<I> {
-    inner: I,
-    style: Style,
+    pub inner: I,
+    pub style: Style,
 }
 
 impl<I> Background<I> {
@@ -16,7 +16,7 @@ impl<I> Background<I> {
         }
     }
 
-    pub fn style(mut self, style: Style) -> Self {
+    pub fn with_style(mut self, style: Style) -> Self {
         self.style = style;
         self
     }

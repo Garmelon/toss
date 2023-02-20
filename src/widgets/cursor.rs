@@ -4,25 +4,25 @@ use crate::{AsyncWidget, Frame, Pos, Size, Widget};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Cursor<I> {
-    inner: I,
-    at: Pos,
+    pub inner: I,
+    pub position: Pos,
 }
 
 impl<I> Cursor<I> {
     pub fn new(inner: I) -> Self {
         Self {
             inner,
-            at: Pos::ZERO,
+            position: Pos::ZERO,
         }
     }
 
-    pub fn at(mut self, pos: Pos) -> Self {
-        self.at = pos;
+    pub fn with_position(mut self, position: Pos) -> Self {
+        self.position = position;
         self
     }
 
-    pub fn at_xy(self, x: i32, y: i32) -> Self {
-        self.at(Pos::new(x, y))
+    pub fn with_position_xy(self, x: i32, y: i32) -> Self {
+        self.with_position(Pos::new(x, y))
     }
 }
 
@@ -41,7 +41,7 @@ where
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
         self.inner.draw(frame)?;
-        frame.show_cursor(self.at);
+        frame.show_cursor(self.position);
         Ok(())
     }
 }
@@ -62,7 +62,7 @@ where
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {
         self.inner.draw(frame).await?;
-        frame.show_cursor(self.at);
+        frame.show_cursor(self.position);
         Ok(())
     }
 }

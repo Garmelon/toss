@@ -4,11 +4,11 @@ use crate::{AsyncWidget, Frame, Pos, Size, Widget};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Padding<I> {
-    inner: I,
-    left: u16,
-    right: u16,
-    top: u16,
-    bottom: u16,
+    pub inner: I,
+    pub left: u16,
+    pub right: u16,
+    pub top: u16,
+    pub bottom: u16,
 }
 
 impl<I> Padding<I> {
@@ -22,36 +22,36 @@ impl<I> Padding<I> {
         }
     }
 
-    pub fn left(mut self, amount: u16) -> Self {
+    pub fn with_left(mut self, amount: u16) -> Self {
         self.left = amount;
         self
     }
 
-    pub fn right(mut self, amount: u16) -> Self {
+    pub fn with_right(mut self, amount: u16) -> Self {
         self.right = amount;
         self
     }
 
-    pub fn top(mut self, amount: u16) -> Self {
+    pub fn with_top(mut self, amount: u16) -> Self {
         self.top = amount;
         self
     }
 
-    pub fn bottom(mut self, amount: u16) -> Self {
+    pub fn with_bottom(mut self, amount: u16) -> Self {
         self.bottom = amount;
         self
     }
 
-    pub fn horizontal(self, amount: u16) -> Self {
-        self.left(amount).right(amount)
+    pub fn with_horizontal(self, amount: u16) -> Self {
+        self.with_left(amount).with_right(amount)
     }
 
-    pub fn vertical(self, amount: u16) -> Self {
-        self.top(amount).bottom(amount)
+    pub fn with_vertical(self, amount: u16) -> Self {
+        self.with_top(amount).with_bottom(amount)
     }
 
-    pub fn all(self, amount: u16) -> Self {
-        self.horizontal(amount).vertical(amount)
+    pub fn with_all(self, amount: u16) -> Self {
+        self.with_horizontal(amount).with_vertical(amount)
     }
 
     fn pad_size(&self) -> Size {

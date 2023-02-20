@@ -88,9 +88,9 @@ impl Default for BorderLook {
 
 #[derive(Debug, Clone, Copy)]
 pub struct Border<I> {
-    inner: I,
-    look: BorderLook,
-    style: Style,
+    pub inner: I,
+    pub look: BorderLook,
+    pub style: Style,
 }
 
 impl<I> Border<I> {
@@ -102,12 +102,12 @@ impl<I> Border<I> {
         }
     }
 
-    pub fn look(mut self, look: BorderLook) -> Self {
+    pub fn with_look(mut self, look: BorderLook) -> Self {
         self.look = look;
         self
     }
 
-    pub fn style(mut self, style: Style) -> Self {
+    pub fn with_style(mut self, style: Style) -> Self {
         self.style = style;
         self
     }

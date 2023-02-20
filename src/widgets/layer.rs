@@ -4,8 +4,8 @@ use crate::{AsyncWidget, Frame, Size, Widget};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Layer<I1, I2> {
-    below: I1,
-    above: I2,
+    pub below: I1,
+    pub above: I2,
 }
 
 impl<I1, I2> Layer<I1, I2> {
