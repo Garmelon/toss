@@ -480,11 +480,10 @@ impl Editor<'_> {
 impl<E> Widget<E> for Editor<'_> {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let widthdb = frame.widthdb();
         let indices = self.indices(widthdb, max_width);
         let rows = self.rows(&indices);
         Ok(Self::size(widthdb, &rows))
@@ -506,11 +505,10 @@ impl<E> Widget<E> for Editor<'_> {
 impl<E> AsyncWidget<E> for Editor<'_> {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let widthdb = frame.widthdb();
         let indices = self.indices(widthdb, max_width);
         let rows = self.rows(&indices);
         Ok(Self::size(widthdb, &rows))

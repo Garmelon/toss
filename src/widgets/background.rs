@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget, WidthDb};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Background<I> {
@@ -37,11 +37,11 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        self.inner.size(frame, max_width, max_height)
+        self.inner.size(widthdb, max_width, max_height)
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
@@ -57,11 +57,11 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        self.inner.size(frame, max_width, max_height).await
+        self.inner.size(widthdb, max_width, max_height).await
     }
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {

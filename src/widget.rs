@@ -3,14 +3,14 @@ use async_trait::async_trait;
 use crate::widgets::{
     Background, Border, Either2, Either3, Float, JoinSegment, Layer, Padding, Resize,
 };
-use crate::{Frame, Size};
+use crate::{Frame, Size, WidthDb};
 
 // TODO Feature-gate these traits
 
 pub trait Widget<E> {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E>;
@@ -22,7 +22,7 @@ pub trait Widget<E> {
 pub trait AsyncWidget<E> {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E>;

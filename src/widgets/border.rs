@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Style, Widget, WidthDb};
 
 #[derive(Debug, Clone, Copy)]
 pub struct BorderLook {
@@ -151,13 +151,13 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
         let max_width = max_width.map(|w| w.saturating_sub(2));
         let max_height = max_height.map(|h| h.saturating_sub(2));
-        let size = self.inner.size(frame, max_width, max_height)?;
+        let size = self.inner.size(widthdb, max_width, max_height)?;
         Ok(size + Size::new(2, 2))
     }
 
@@ -179,13 +179,13 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
         let max_width = max_width.map(|w| w.saturating_sub(2));
         let max_height = max_height.map(|h| h.saturating_sub(2));
-        let size = self.inner.size(frame, max_width, max_height).await?;
+        let size = self.inner.size(widthdb, max_width, max_height).await?;
         Ok(size + Size::new(2, 2))
     }
 

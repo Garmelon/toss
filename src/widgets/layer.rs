@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Size, Widget};
+use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Layer<I1, I2> {
@@ -25,12 +25,12 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let bottom = self.below.size(frame, max_width, max_height)?;
-        let top = self.above.size(frame, max_width, max_height)?;
+        let bottom = self.below.size(widthdb, max_width, max_height)?;
+        let top = self.above.size(widthdb, max_width, max_height)?;
         Ok(Self::size(bottom, top))
     }
 
@@ -49,12 +49,12 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let bottom = self.below.size(frame, max_width, max_height).await?;
-        let top = self.above.size(frame, max_width, max_height).await?;
+        let bottom = self.below.size(widthdb, max_width, max_height).await?;
+        let top = self.above.size(widthdb, max_width, max_height).await?;
         Ok(Self::size(bottom, top))
     }
 

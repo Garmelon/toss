@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Widget, WidthDb};
 
 use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 
@@ -300,14 +300,14 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
         if let Some(max_width) = max_width {
             let mut balanced_segments = vec![];
             for segment in &self.segments {
-                let size = segment.inner.size(frame, Some(max_width), max_height)?;
+                let size = segment.inner.size(widthdb, Some(max_width), max_height)?;
                 balanced_segments.push(Segment::horizontal(size, segment));
             }
             balance(&mut balanced_segments, max_width);
@@ -315,7 +315,9 @@ where
             let mut width = 0_u16;
             let mut height = 0_u16;
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
-                let size = segment.inner.size(frame, Some(balanced.size), max_height)?;
+                let size = segment
+                    .inner
+                    .size(widthdb, Some(balanced.size), max_height)?;
                 width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
@@ -324,7 +326,7 @@ where
             let mut width = 0_u16;
             let mut height = 0_u16;
             for segment in &self.segments {
-                let size = segment.inner.size(frame, max_width, max_height)?;
+                let size = segment.inner.size(widthdb, max_width, max_height)?;
                 width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
@@ -339,7 +341,7 @@ where
 
         let mut balanced_segments = vec![];
         for segment in &self.segments {
-            let size = segment.inner.size(frame, max_width, max_height)?;
+            let size = segment.inner.size(frame.widthdb(), max_width, max_height)?;
             balanced_segments.push(Segment::horizontal(size, segment));
         }
         balance(&mut balanced_segments, size.width);
@@ -363,7 +365,7 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
@@ -372,7 +374,7 @@ where
             for segment in &self.segments {
                 let size = segment
                     .inner
-                    .size(frame, Some(max_width), max_height)
+                    .size(widthdb, Some(max_width), max_height)
                     .await?;
                 balanced_segments.push(Segment::horizontal(size, segment));
             }
@@ -383,7 +385,7 @@ where
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
                 let size = segment
                     .inner
-                    .size(frame, Some(balanced.size), max_height)
+                    .size(widthdb, Some(balanced.size), max_height)
                     .await?;
                 width = width.saturating_add(size.width);
                 height = height.max(size.height);
@@ -393,7 +395,7 @@ where
             let mut width = 0_u16;
             let mut height = 0_u16;
             for segment in &self.segments {
-                let size = segment.inner.size(frame, max_width, max_height).await?;
+                let size = segment.inner.size(widthdb, max_width, max_height).await?;
                 width = width.saturating_add(size.width);
                 height = height.max(size.height);
             }
@@ -408,7 +410,10 @@ where
 
         let mut balanced_segments = vec![];
         for segment in &self.segments {
-            let size = segment.inner.size(frame, max_width, max_height).await?;
+            let size = segment
+                .inner
+                .size(frame.widthdb(), max_width, max_height)
+                .await?;
             balanced_segments.push(Segment::horizontal(size, segment));
         }
         balance(&mut balanced_segments, size.width);
@@ -441,14 +446,14 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
         if let Some(max_height) = max_height {
             let mut balanced_segments = vec![];
             for segment in &self.segments {
-                let size = segment.inner.size(frame, max_width, Some(max_height))?;
+                let size = segment.inner.size(widthdb, max_width, Some(max_height))?;
                 balanced_segments.push(Segment::vertical(size, segment));
             }
             balance(&mut balanced_segments, max_height);
@@ -456,7 +461,9 @@ where
             let mut width = 0_u16;
             let mut height = 0_u16;
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
-                let size = segment.inner.size(frame, max_width, Some(balanced.size))?;
+                let size = segment
+                    .inner
+                    .size(widthdb, max_width, Some(balanced.size))?;
                 width = width.max(size.width);
                 height = height.saturating_add(size.height);
             }
@@ -465,7 +472,7 @@ where
             let mut width = 0_u16;
             let mut height = 0_u16;
             for segment in &self.segments {
-                let size = segment.inner.size(frame, max_width, max_height)?;
+                let size = segment.inner.size(widthdb, max_width, max_height)?;
                 width = width.max(size.width);
                 height = height.saturating_add(size.height);
             }
@@ -480,7 +487,7 @@ where
 
         let mut balanced_segments = vec![];
         for segment in &self.segments {
-            let size = segment.inner.size(frame, max_width, max_height)?;
+            let size = segment.inner.size(frame.widthdb(), max_width, max_height)?;
             balanced_segments.push(Segment::vertical(size, segment));
         }
         balance(&mut balanced_segments, size.height);
@@ -504,7 +511,7 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
@@ -513,7 +520,7 @@ where
             for segment in &self.segments {
                 let size = segment
                     .inner
-                    .size(frame, max_width, Some(max_height))
+                    .size(widthdb, max_width, Some(max_height))
                     .await?;
                 balanced_segments.push(Segment::vertical(size, segment));
             }
@@ -524,7 +531,7 @@ where
             for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
                 let size = segment
                     .inner
-                    .size(frame, max_width, Some(balanced.size))
+                    .size(widthdb, max_width, Some(balanced.size))
                     .await?;
                 width = width.max(size.width);
                 height = height.saturating_add(size.height);
@@ -534,7 +541,7 @@ where
             let mut width = 0_u16;
             let mut height = 0_u16;
             for segment in &self.segments {
-                let size = segment.inner.size(frame, max_width, max_height).await?;
+                let size = segment.inner.size(widthdb, max_width, max_height).await?;
                 width = width.max(size.width);
                 height = height.saturating_add(size.height);
             }
@@ -549,7 +556,10 @@ where
 
         let mut balanced_segments = vec![];
         for segment in &self.segments {
-            let size = segment.inner.size(frame, max_width, max_height).await?;
+            let size = segment
+                .inner
+                .size(frame.widthdb(), max_width, max_height)
+                .await?;
             balanced_segments.push(Segment::vertical(size, segment));
         }
         balance(&mut balanced_segments, size.height);
@@ -593,11 +603,11 @@ macro_rules! mk_join {
         {
             fn size(
                 &self,
-                frame: &mut Frame,
+                widthdb: &mut WidthDb,
                 max_width: Option<u16>,
                 max_height: Option<u16>,
             ) -> Result<Size, E> {
-                self.0.size(frame, max_width, max_height)
+                self.0.size(widthdb, max_width, max_height)
             }
 
             fn draw(self, frame: &mut Frame) -> Result<(), E> {
@@ -612,11 +622,11 @@ macro_rules! mk_join {
         {
             async fn size(
                 &self,
-                frame: &mut Frame,
+                widthdb: &mut WidthDb,
                 max_width: Option<u16>,
                 max_height: Option<u16>,
             ) -> Result<Size, E> {
-                self.0.size(frame, max_width, max_height).await
+                self.0.size(widthdb, max_width, max_height).await
             }
 
             async fn draw(self, frame: &mut Frame) -> Result<(), E> {

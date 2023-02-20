@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Widget, WidthDb};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Padding<I> {
@@ -72,14 +72,14 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
         let pad_size = self.pad_size();
         let max_width = max_width.map(|w| w.saturating_sub(pad_size.width));
         let max_height = max_height.map(|h| h.saturating_sub(pad_size.height));
-        let size = self.inner.size(frame, max_width, max_height)?;
+        let size = self.inner.size(widthdb, max_width, max_height)?;
         Ok(size + pad_size)
     }
 
@@ -98,14 +98,14 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
         let pad_size = self.pad_size();
         let max_width = max_width.map(|w| w.saturating_sub(pad_size.width));
         let max_height = max_height.map(|h| h.saturating_sub(pad_size.height));
-        let size = self.inner.size(frame, max_width, max_height).await?;
+        let size = self.inner.size(widthdb, max_width, max_height).await?;
         Ok(size + pad_size)
     }
 

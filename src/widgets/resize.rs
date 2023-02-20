@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Size, Widget};
+use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
 pub struct Resize<I> {
     pub inner: I,
@@ -69,11 +69,11 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let size = self.inner.size(frame, max_width, max_height)?;
+        let size = self.inner.size(widthdb, max_width, max_height)?;
         Ok(self.resize(size))
     }
 
@@ -89,11 +89,11 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let size = self.inner.size(frame, max_width, max_height).await?;
+        let size = self.inner.size(widthdb, max_width, max_height).await?;
         Ok(self.resize(size))
     }
 

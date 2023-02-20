@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Widget};
+use crate::{AsyncWidget, Frame, Pos, Size, Widget, WidthDb};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Float<I> {
@@ -115,18 +115,18 @@ where
 {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        self.inner.size(frame, max_width, max_height)
+        self.inner.size(widthdb, max_width, max_height)
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
         let size = frame.size();
         let inner_size = self
             .inner
-            .size(frame, Some(size.width), Some(size.height))?;
+            .size(frame.widthdb(), Some(size.width), Some(size.height))?;
 
         self.push_inner(frame, size, inner_size);
         self.inner.draw(frame)?;
@@ -143,18 +143,18 @@ where
 {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        self.inner.size(frame, max_width, max_height).await
+        self.inner.size(widthdb, max_width, max_height).await
     }
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {
         let size = frame.size();
         let inner_size = self
             .inner
-            .size(frame, Some(size.width), Some(size.height))
+            .size(frame.widthdb(), Some(size.width), Some(size.height))
             .await?;
 
         self.push_inner(frame, size, inner_size);

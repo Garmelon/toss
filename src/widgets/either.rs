@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Size, Widget};
+use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
 macro_rules! mk_either {
     (
@@ -19,12 +19,12 @@ macro_rules! mk_either {
         {
             fn size(
                 &self,
-                frame: &mut Frame,
+                widthdb: &mut WidthDb,
                 max_width: Option<u16>,
                 max_height: Option<u16>,
             ) -> Result<Size, E> {
                 match self {
-                    $( Self::$constr(w) => w.size(frame, max_width, max_height), )+
+                    $( Self::$constr(w) => w.size(widthdb, max_width, max_height), )+
                 }
             }
 
@@ -42,12 +42,12 @@ macro_rules! mk_either {
         {
             async fn size(
                 &self,
-                frame: &mut Frame,
+                widthdb: &mut WidthDb,
                 max_width: Option<u16>,
                 max_height: Option<u16>,
             ) -> Result<Size, E> {
                 match self {
-                    $( Self::$constr(w) => w.size(frame, max_width, max_height).await, )+
+                    $( Self::$constr(w) => w.size(widthdb, max_width, max_height).await, )+
                 }
             }
 

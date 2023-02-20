@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 
-use crate::{AsyncWidget, Frame, Size, Widget};
+use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Empty {
@@ -31,7 +31,7 @@ impl Empty {
 impl<E> Widget<E> for Empty {
     fn size(
         &self,
-        _frame: &mut Frame,
+        _widthdb: &mut WidthDb,
         _max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
@@ -47,7 +47,7 @@ impl<E> Widget<E> for Empty {
 impl<E> AsyncWidget<E> for Empty {
     async fn size(
         &self,
-        _frame: &mut Frame,
+        _widthdb: &mut WidthDb,
         _max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {

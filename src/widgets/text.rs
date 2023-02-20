@@ -62,11 +62,11 @@ impl Text {
 impl<E> Widget<E> for Text {
     fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
-        Ok(self.size(frame.widthdb(), max_width))
+        Ok(self.size(widthdb, max_width))
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
@@ -79,11 +79,11 @@ impl<E> Widget<E> for Text {
 impl<E> AsyncWidget<E> for Text {
     async fn size(
         &self,
-        frame: &mut Frame,
+        widthdb: &mut WidthDb,
         max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
-        Ok(self.size(frame.widthdb(), max_width))
+        Ok(self.size(widthdb, max_width))
     }
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {
