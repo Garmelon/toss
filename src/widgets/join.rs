@@ -4,8 +4,6 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Pos, Size, Widget, WidthDb};
 
-use super::{Either2, Either3, Either4, Either5, Either6, Either7};
-
 // The following algorithm has three goals, listed in order of importance:
 //
 // 1. Use the available space
@@ -53,25 +51,18 @@ use super::{Either2, Either3, Either4, Either5, Either6, Either7};
 
 #[derive(Debug)]
 struct Segment {
-    size: u16,
+    major: u16,
+    minor: u16,
     weight: f32,
     growing: bool,
     shrinking: bool,
 }
 
 impl Segment {
-    fn horizontal<I>(size: Size, segment: &JoinSegment<I>) -> Self {
+    fn new<I>(major_minor: (u16, u16), segment: &JoinSegment<I>) -> Self {
         Self {
-            size: size.width,
-            weight: segment.weight,
-            growing: segment.growing,
-            shrinking: segment.shrinking,
-        }
-    }
-
-    fn vertical<I>(size: Size, segment: &JoinSegment<I>) -> Self {
-        Self {
-            size: size.height,
+            major: major_minor.0,
+            minor: major_minor.1,
             weight: segment.weight,
             growing: segment.growing,
             shrinking: segment.shrinking,
@@ -82,7 +73,7 @@ impl Segment {
 fn total_size(segments: &[&mut Segment]) -> u16 {
     let mut total = 0_u16;
     for segment in segments {
-        total = total.saturating_add(segment.size);
+        total = total.saturating_add(segment.major);
     }
     total
 }
@@ -108,7 +99,7 @@ fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
         if s.growing {
             return true;
         }
-        available = available.saturating_sub(s.size);
+        available = available.saturating_sub(s.major);
         false
     });
 
@@ -129,10 +120,10 @@ fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
         let mut removed = 0;
         segments.retain(|s| {
             let allotment = s.weight / total_weight * available as f32;
-            if (s.size as f32) < allotment {
+            if (s.major as f32) < allotment {
                 return true; // May need to grow
             }
-            removed += s.size;
+            removed += s.major;
             false
         });
         available -= removed;
@@ -151,8 +142,8 @@ fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
     let mut used = 0;
     for segment in &mut segments {
         let allotment = segment.weight / total_weight * available as f32;
-        segment.size = allotment.floor() as u16;
-        used += segment.size;
+        segment.major = allotment.floor() as u16;
+        used += segment.major;
     }
 
     // Distribute remaining unused space from left to right.
@@ -162,7 +153,7 @@ fn grow(mut segments: Vec<&mut Segment>, mut available: u16) {
     let remaining = available - used;
     assert!(remaining as usize <= segments.len());
     for segment in segments.into_iter().take(remaining.into()) {
-        segment.size += 1;
+        segment.major += 1;
     }
 }
 
@@ -174,7 +165,7 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
         if s.shrinking {
             return true;
         }
-        available = available.saturating_sub(s.size);
+        available = available.saturating_sub(s.major);
         false
     });
 
@@ -195,16 +186,16 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
         let mut removed = 0;
         segments.retain(|s| {
             let allotment = s.weight / total_weight * available as f32;
-            if (s.size as f32) > allotment {
+            if (s.major as f32) > allotment {
                 return true; // May need to shrink
             }
 
             // The segment size subtracted from `available` is always smaller
             // than or equal to its allotment. Since `available` is the sum of
             // all allotments, it can never go below 0.
-            assert!(s.size <= available);
+            assert!(s.major <= available);
 
-            removed += s.size;
+            removed += s.major;
             false
         });
         available -= removed;
@@ -223,8 +214,8 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
     let mut used = 0;
     for segment in &mut segments {
         let allotment = segment.weight / total_weight * available as f32;
-        segment.size = allotment.floor() as u16;
-        used += segment.size;
+        segment.major = allotment.floor() as u16;
+        used += segment.major;
     }
 
     // Distribute remaining unused space from left to right.
@@ -234,7 +225,7 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
     let remaining = available - used;
     assert!(remaining as usize <= segments.len());
     for segment in segments.into_iter().take(remaining.into()) {
-        segment.size += 1;
+        segment.major += 1;
     }
 }
 
@@ -284,17 +275,106 @@ impl<I> JoinSegment<I> {
     }
 }
 
-pub struct JoinH<I> {
-    segments: Vec<JoinSegment<I>>,
-}
-
-impl<I> JoinH<I> {
-    pub fn new(segments: Vec<JoinSegment<I>>) -> Self {
-        Self { segments }
+fn to_mm<T>(horizontal: bool, w: T, h: T) -> (T, T) {
+    if horizontal {
+        (w, h)
+    } else {
+        (h, w)
     }
 }
 
-impl<E, I> Widget<E> for JoinH<I>
+fn from_mm<T>(horizontal: bool, major: T, minor: T) -> (T, T) {
+    if horizontal {
+        (major, minor)
+    } else {
+        (minor, major)
+    }
+}
+
+fn size<E, I: Widget<E>>(
+    horizontal: bool,
+    widthdb: &mut WidthDb,
+    segment: &JoinSegment<I>,
+    major: Option<u16>,
+    minor: Option<u16>,
+) -> Result<(u16, u16), E> {
+    if horizontal {
+        let size = segment.inner.size(widthdb, major, minor)?;
+        Ok((size.width, size.height))
+    } else {
+        let size = segment.inner.size(widthdb, minor, major)?;
+        Ok((size.height, size.width))
+    }
+}
+
+fn size_with_balanced<E, I: Widget<E>>(
+    horizontal: bool,
+    widthdb: &mut WidthDb,
+    segment: &JoinSegment<I>,
+    balanced: &Segment,
+    minor: Option<u16>,
+) -> Result<(u16, u16), E> {
+    size(horizontal, widthdb, segment, Some(balanced.major), minor)
+}
+
+async fn size_async<E, I: AsyncWidget<E>>(
+    horizontal: bool,
+    widthdb: &mut WidthDb,
+    segment: &JoinSegment<I>,
+    major: Option<u16>,
+    minor: Option<u16>,
+) -> Result<(u16, u16), E> {
+    if horizontal {
+        let size = segment.inner.size(widthdb, major, minor).await?;
+        Ok((size.width, size.height))
+    } else {
+        let size = segment.inner.size(widthdb, minor, major).await?;
+        Ok((size.height, size.width))
+    }
+}
+
+async fn size_async_with_balanced<E, I: AsyncWidget<E>>(
+    horizontal: bool,
+    widthdb: &mut WidthDb,
+    segment: &JoinSegment<I>,
+    balanced: &Segment,
+    minor: Option<u16>,
+) -> Result<(u16, u16), E> {
+    size_async(horizontal, widthdb, segment, Some(balanced.major), minor).await
+}
+
+fn sum_major_max_minor(segments: &[Segment]) -> (u16, u16) {
+    let mut major = 0_u16;
+    let mut minor = 0_u16;
+    for segment in segments {
+        major = major.saturating_add(segment.major);
+        minor = minor.max(segment.minor);
+    }
+    (major, minor)
+}
+
+pub struct Join<I> {
+    horizontal: bool,
+    segments: Vec<JoinSegment<I>>,
+}
+
+impl<I> Join<I> {
+    pub fn horizontal(segments: Vec<JoinSegment<I>>) -> Self {
+        Self {
+            horizontal: true,
+            segments,
+        }
+    }
+
+    pub fn vertical(segments: Vec<JoinSegment<I>>) -> Self {
+        Self {
+            horizontal: false,
+            segments,
+        }
+    }
+}
+
+impl<E, I> Widget<E> for Join<I>
 where
     I: Widget<E>,
 {
@@ -304,54 +384,51 @@ where
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        if let Some(max_width) = max_width {
-            let mut balanced_segments = vec![];
-            for segment in &self.segments {
-                let size = segment.inner.size(widthdb, Some(max_width), max_height)?;
-                balanced_segments.push(Segment::horizontal(size, segment));
-            }
-            balance(&mut balanced_segments, max_width);
+        let (max_major, max_minor) = to_mm(self.horizontal, max_width, max_height);
 
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
-                let size = segment
-                    .inner
-                    .size(widthdb, Some(balanced.size), max_height)?;
-                width = width.saturating_add(size.width);
-                height = height.max(size.height);
-            }
-            Ok(Size::new(width, height))
-        } else {
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for segment in &self.segments {
-                let size = segment.inner.size(widthdb, max_width, max_height)?;
-                width = width.saturating_add(size.width);
-                height = height.max(size.height);
-            }
-            Ok(Size::new(width, height))
+        let mut segments = Vec::with_capacity(self.segments.len());
+        for segment in &self.segments {
+            let major_minor = size(self.horizontal, widthdb, segment, None, max_minor)?;
+            segments.push(Segment::new(major_minor, segment));
         }
+
+        if let Some(available) = max_major {
+            balance(&mut segments, available);
+
+            let mut new_segments = Vec::with_capacity(self.segments.len());
+            for (segment, balanced) in self.segments.iter().zip(segments.into_iter()) {
+                let major_minor =
+                    size_with_balanced(self.horizontal, widthdb, segment, &balanced, max_minor)?;
+                new_segments.push(Segment::new(major_minor, segment));
+            }
+            segments = new_segments;
+        }
+
+        let (major, minor) = sum_major_max_minor(&segments);
+        let (width, height) = from_mm(self.horizontal, major, minor);
+        Ok(Size::new(width, height))
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        let size = frame.size();
-        let max_width = Some(size.width);
-        let max_height = Some(size.height);
+        let frame_size = frame.size();
+        let (max_major, max_minor) = to_mm(self.horizontal, frame_size.width, frame_size.height);
 
-        let mut balanced_segments = vec![];
+        let widthdb = frame.widthdb();
+        let mut segments = Vec::with_capacity(self.segments.len());
         for segment in &self.segments {
-            let size = segment.inner.size(frame.widthdb(), max_width, max_height)?;
-            balanced_segments.push(Segment::horizontal(size, segment));
+            let major_minor = size(self.horizontal, widthdb, segment, None, Some(max_minor))?;
+            segments.push(Segment::new(major_minor, segment));
         }
-        balance(&mut balanced_segments, size.width);
+        balance(&mut segments, max_major);
 
-        let mut x = 0;
-        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
-            frame.push(Pos::new(x, 0), Size::new(balanced.size, size.height));
+        let mut major = 0_i32;
+        for (segment, balanced) in self.segments.into_iter().zip(segments.into_iter()) {
+            let (x, y) = from_mm(self.horizontal, major, 0);
+            let (w, h) = from_mm(self.horizontal, balanced.major, max_minor);
+            frame.push(Pos::new(x, y), Size::new(w, h));
             segment.inner.draw(frame)?;
             frame.pop();
-            x += balanced.size as i32;
+            major += balanced.major as i32;
         }
 
         Ok(())
@@ -359,7 +436,7 @@ where
 }
 
 #[async_trait]
-impl<E, I> AsyncWidget<E> for JoinH<I>
+impl<E, I> AsyncWidget<E> for Join<I>
 where
     I: AsyncWidget<E> + Send + Sync,
 {
@@ -369,207 +446,59 @@ where
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
-        if let Some(max_width) = max_width {
-            let mut balanced_segments = vec![];
-            for segment in &self.segments {
-                let size = segment
-                    .inner
-                    .size(widthdb, Some(max_width), max_height)
-                    .await?;
-                balanced_segments.push(Segment::horizontal(size, segment));
-            }
-            balance(&mut balanced_segments, max_width);
+        let (max_major, max_minor) = to_mm(self.horizontal, max_width, max_height);
 
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
-                let size = segment
-                    .inner
-                    .size(widthdb, Some(balanced.size), max_height)
-                    .await?;
-                width = width.saturating_add(size.width);
-                height = height.max(size.height);
-            }
-            Ok(Size::new(width, height))
-        } else {
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for segment in &self.segments {
-                let size = segment.inner.size(widthdb, max_width, max_height).await?;
-                width = width.saturating_add(size.width);
-                height = height.max(size.height);
-            }
-            Ok(Size::new(width, height))
+        let mut segments = Vec::with_capacity(self.segments.len());
+        for segment in &self.segments {
+            let major_minor =
+                size_async(self.horizontal, widthdb, segment, None, max_minor).await?;
+            segments.push(Segment::new(major_minor, segment));
         }
+
+        if let Some(available) = max_major {
+            balance(&mut segments, available);
+
+            let mut new_segments = Vec::with_capacity(self.segments.len());
+            for (segment, balanced) in self.segments.iter().zip(segments.into_iter()) {
+                let major_minor = size_async_with_balanced(
+                    self.horizontal,
+                    widthdb,
+                    segment,
+                    &balanced,
+                    max_minor,
+                )
+                .await?;
+                new_segments.push(Segment::new(major_minor, segment));
+            }
+            segments = new_segments;
+        }
+
+        let (major, minor) = sum_major_max_minor(&segments);
+        let (width, height) = from_mm(self.horizontal, major, minor);
+        Ok(Size::new(width, height))
     }
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        let size = frame.size();
-        let max_width = Some(size.width);
-        let max_height = Some(size.height);
+        let frame_size = frame.size();
+        let (max_major, max_minor) = to_mm(self.horizontal, frame_size.width, frame_size.height);
 
-        let mut balanced_segments = vec![];
+        let widthdb = frame.widthdb();
+        let mut segments = Vec::with_capacity(self.segments.len());
         for segment in &self.segments {
-            let size = segment
-                .inner
-                .size(frame.widthdb(), max_width, max_height)
-                .await?;
-            balanced_segments.push(Segment::horizontal(size, segment));
+            let major_minor =
+                size_async(self.horizontal, widthdb, segment, None, Some(max_minor)).await?;
+            segments.push(Segment::new(major_minor, segment));
         }
-        balance(&mut balanced_segments, size.width);
+        balance(&mut segments, max_major);
 
-        let mut x = 0;
-        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
-            frame.push(Pos::new(x, 0), Size::new(balanced.size, size.height));
+        let mut major = 0_i32;
+        for (segment, balanced) in self.segments.into_iter().zip(segments.into_iter()) {
+            let (x, y) = from_mm(self.horizontal, major, 0);
+            let (w, h) = from_mm(self.horizontal, balanced.major, max_minor);
+            frame.push(Pos::new(x, y), Size::new(w, h));
             segment.inner.draw(frame).await?;
             frame.pop();
-            x += balanced.size as i32;
-        }
-
-        Ok(())
-    }
-}
-
-pub struct JoinV<I> {
-    segments: Vec<JoinSegment<I>>,
-}
-
-impl<I> JoinV<I> {
-    pub fn new(segments: Vec<JoinSegment<I>>) -> Self {
-        Self { segments }
-    }
-}
-
-impl<E, I> Widget<E> for JoinV<I>
-where
-    I: Widget<E>,
-{
-    fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        if let Some(max_height) = max_height {
-            let mut balanced_segments = vec![];
-            for segment in &self.segments {
-                let size = segment.inner.size(widthdb, max_width, Some(max_height))?;
-                balanced_segments.push(Segment::vertical(size, segment));
-            }
-            balance(&mut balanced_segments, max_height);
-
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
-                let size = segment
-                    .inner
-                    .size(widthdb, max_width, Some(balanced.size))?;
-                width = width.max(size.width);
-                height = height.saturating_add(size.height);
-            }
-            Ok(Size::new(width, height))
-        } else {
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for segment in &self.segments {
-                let size = segment.inner.size(widthdb, max_width, max_height)?;
-                width = width.max(size.width);
-                height = height.saturating_add(size.height);
-            }
-            Ok(Size::new(width, height))
-        }
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        let size = frame.size();
-        let max_width = Some(size.width);
-        let max_height = Some(size.height);
-
-        let mut balanced_segments = vec![];
-        for segment in &self.segments {
-            let size = segment.inner.size(frame.widthdb(), max_width, max_height)?;
-            balanced_segments.push(Segment::vertical(size, segment));
-        }
-        balance(&mut balanced_segments, size.height);
-
-        let mut y = 0;
-        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
-            frame.push(Pos::new(0, y), Size::new(size.width, balanced.size));
-            segment.inner.draw(frame)?;
-            frame.pop();
-            y += balanced.size as i32;
-        }
-
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<E, I> AsyncWidget<E> for JoinV<I>
-where
-    I: AsyncWidget<E> + Send + Sync,
-{
-    async fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        if let Some(max_height) = max_height {
-            let mut balanced_segments = vec![];
-            for segment in &self.segments {
-                let size = segment
-                    .inner
-                    .size(widthdb, max_width, Some(max_height))
-                    .await?;
-                balanced_segments.push(Segment::vertical(size, segment));
-            }
-            balance(&mut balanced_segments, max_height);
-
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for (segment, balanced) in self.segments.iter().zip(balanced_segments.into_iter()) {
-                let size = segment
-                    .inner
-                    .size(widthdb, max_width, Some(balanced.size))
-                    .await?;
-                width = width.max(size.width);
-                height = height.saturating_add(size.height);
-            }
-            Ok(Size::new(width, height))
-        } else {
-            let mut width = 0_u16;
-            let mut height = 0_u16;
-            for segment in &self.segments {
-                let size = segment.inner.size(widthdb, max_width, max_height).await?;
-                width = width.max(size.width);
-                height = height.saturating_add(size.height);
-            }
-            Ok(Size::new(width, height))
-        }
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        let size = frame.size();
-        let max_width = Some(size.width);
-        let max_height = Some(size.height);
-
-        let mut balanced_segments = vec![];
-        for segment in &self.segments {
-            let size = segment
-                .inner
-                .size(frame.widthdb(), max_width, max_height)
-                .await?;
-            balanced_segments.push(Segment::vertical(size, segment));
-        }
-        balance(&mut balanced_segments, size.height);
-
-        let mut y = 0;
-        for (segment, balanced) in self.segments.into_iter().zip(balanced_segments.into_iter()) {
-            frame.push(Pos::new(0, y), Size::new(size.width, balanced.size));
-            segment.inner.draw(frame).await?;
-            frame.pop();
-            y += balanced.size as i32;
+            major += balanced.major as i32;
         }
 
         Ok(())
@@ -578,28 +507,28 @@ where
 
 macro_rules! mk_join {
     (
-        $name:ident: $base:ident + $either:ident {
-            $( $arg:ident: $constr:ident ($ty:ident), )+
+        pub struct $name:ident {
+            $( pub $arg:ident: $type:ident [$n:expr], )+
         }
     ) => {
-        pub struct $name< $( $ty ),+ >($base<$either< $( $ty ),+ >>);
+        pub struct $name< $($type),+ >{
+            horizontal: bool,
+            $( pub $arg: JoinSegment<$type>, )+
+        }
 
-        impl< $( $ty ),+ > $name< $( $ty ),+ > {
-            pub fn new( $( $arg: JoinSegment<$ty> ),+ ) -> Self {
-                Self($base::new(vec![ $(
-                    JoinSegment {
-                        inner: $either::$constr($arg.inner),
-                        weight: $arg.weight,
-                        growing: $arg.growing,
-                        shrinking: $arg.shrinking,
-                    },
-                )+ ]))
+        impl< $($type),+ > $name< $($type),+ >{
+            pub fn horizontal( $($arg: JoinSegment<$type>),+ ) -> Self {
+                Self { horizontal: true, $( $arg, )+ }
+            }
+
+            pub fn vertical( $($arg: JoinSegment<$type>),+ ) -> Self {
+                Self { horizontal: false, $( $arg, )+ }
             }
         }
 
-        impl<E, $( $ty ),+ > Widget<E> for $name< $( $ty ),+ >
+        impl<E, $($type),+ > Widget<E> for $name< $($type),+ >
         where
-            $( $ty: Widget<E>, )+
+            $( $type: Widget<E>, )+
         {
             fn size(
                 &self,
@@ -607,18 +536,66 @@ macro_rules! mk_join {
                 max_width: Option<u16>,
                 max_height: Option<u16>,
             ) -> Result<Size, E> {
-                self.0.size(widthdb, max_width, max_height)
+                let (max_major, max_minor) = to_mm(self.horizontal, max_width, max_height);
+
+                let mut segments = [ $(
+                    Segment::new(
+                        size(self.horizontal, widthdb, &self.$arg, None, max_minor)?,
+                        &self.$arg,
+                    ),
+                )+ ];
+
+                if let Some(available) = max_major {
+                    balance(&mut segments, available);
+
+                    let new_segments = [ $(
+                        Segment::new(
+                            size_with_balanced(self.horizontal, widthdb, &self.$arg, &segments[$n], max_minor)?,
+                            &self.$arg,
+                        ),
+                    )+ ];
+                    segments = new_segments;
+                }
+
+                let (major, minor) = sum_major_max_minor(&segments);
+                let (width, height) = from_mm(self.horizontal, major, minor);
+                Ok(Size::new(width, height))
             }
 
+            #[allow(unused_assignments)]
             fn draw(self, frame: &mut Frame) -> Result<(), E> {
-                self.0.draw(frame)
+                let frame_size = frame.size();
+                let (max_major, max_minor) = to_mm(self.horizontal, frame_size.width, frame_size.height);
+
+                let widthdb = frame.widthdb();
+                let mut segments = [ $(
+                    Segment::new(
+                        size(self.horizontal, widthdb, &self.$arg, None, Some(max_minor))?,
+                        &self.$arg,
+                    ),
+                )+ ];
+                balance(&mut segments, max_major);
+
+                let mut major = 0_i32;
+                $( {
+                    let balanced = &segments[$n];
+                    let (x, y) = from_mm(self.horizontal, major, 0);
+                    let (w, h) = from_mm(self.horizontal, balanced.major, max_minor);
+                    frame.push(Pos::new(x, y), Size::new(w, h));
+                    self.$arg.inner.draw(frame)?;
+                    frame.pop();
+                    major += balanced.major as i32;
+                } )*
+
+                Ok(())
             }
         }
 
         #[async_trait]
-        impl<E, $( $ty ),+ > AsyncWidget<E> for $name< $( $ty ),+ >
+        impl<E, $($type),+ > AsyncWidget<E> for $name< $($type),+ >
         where
-            $( $ty: AsyncWidget<E> + Send + Sync, )+
+            E: Send,
+            $( $type: AsyncWidget<E> + Send + Sync, )+
         {
             async fn size(
                 &self,
@@ -626,126 +603,116 @@ macro_rules! mk_join {
                 max_width: Option<u16>,
                 max_height: Option<u16>,
             ) -> Result<Size, E> {
-                self.0.size(widthdb, max_width, max_height).await
+                let (max_major, max_minor) = to_mm(self.horizontal, max_width, max_height);
+
+                let mut segments = [ $(
+                    Segment::new(
+                        size_async(self.horizontal, widthdb, &self.$arg, None, max_minor).await?,
+                        &self.$arg,
+                    ),
+                )+ ];
+
+                if let Some(available) = max_major {
+                    balance(&mut segments, available);
+
+                    let new_segments = [ $(
+                        Segment::new(
+                            size_async_with_balanced(self.horizontal, widthdb, &self.$arg, &segments[$n], max_minor).await?,
+                            &self.$arg,
+                        ),
+                    )+ ];
+                    segments = new_segments;
+                }
+
+                let (major, minor) = sum_major_max_minor(&segments);
+                let (width, height) = from_mm(self.horizontal, major, minor);
+                Ok(Size::new(width, height))
             }
 
+            #[allow(unused_assignments)]
             async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-                self.0.draw(frame).await
+                let frame_size = frame.size();
+                let (max_major, max_minor) = to_mm(self.horizontal, frame_size.width, frame_size.height);
+
+                let widthdb = frame.widthdb();
+                let mut segments = [ $(
+                    Segment::new(
+                        size_async(self.horizontal, widthdb, &self.$arg, None, Some(max_minor)).await?,
+                        &self.$arg,
+                    ),
+                )+ ];
+                balance(&mut segments, max_major);
+
+                let mut major = 0_i32;
+                $( {
+                    let balanced = &segments[$n];
+                    let (x, y) = from_mm(self.horizontal, major, 0);
+                    let (w, h) = from_mm(self.horizontal, balanced.major, max_minor);
+                    frame.push(Pos::new(x, y), Size::new(w, h));
+                    self.$arg.inner.draw(frame).await?;
+                    frame.pop();
+                    major += balanced.major as i32;
+                } )*
+
+                Ok(())
             }
         }
     };
 }
 
 mk_join! {
-    JoinH2: JoinH + Either2 {
-        first: First(I1),
-        second: Second(I2),
+    pub struct Join2 {
+        pub first: I1 [0],
+        pub second: I2 [1],
     }
 }
 
 mk_join! {
-    JoinH3: JoinH + Either3 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
+    pub struct Join3 {
+        pub first: I1 [0],
+        pub second: I2 [1],
+        pub third: I3 [2],
     }
 }
 
 mk_join! {
-    JoinH4: JoinH + Either4 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
+    pub struct Join4 {
+        pub first: I1 [0],
+        pub second: I2 [1],
+        pub third: I3 [2],
+        pub fourth: I4 [3],
     }
 }
 
 mk_join! {
-    JoinH5: JoinH + Either5 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-        fifth: Fifth(I5),
+    pub struct Join5 {
+        pub first: I1 [0],
+        pub second: I2 [1],
+        pub third: I3 [2],
+        pub fourth: I4 [3],
+        pub fifth: I5 [4],
     }
 }
 
 mk_join! {
-    JoinH6: JoinH + Either6 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-        fifth: Fifth(I5),
-        sixth: Sixth(I6),
+    pub struct Join6 {
+        pub first: I1 [0],
+        pub second: I2 [1],
+        pub third: I3 [2],
+        pub fourth: I4 [3],
+        pub fifth: I5 [4],
+        pub sixth: I6 [5],
     }
 }
 
 mk_join! {
-    JoinH7: JoinH + Either7 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-        fifth: Fifth(I5),
-        sixth: Sixth(I6),
-        seventh: Seventh(I7),
-    }
-}
-
-mk_join! {
-    JoinV2: JoinV + Either2 {
-        first: First(I1),
-        second: Second(I2),
-    }
-}
-
-mk_join! {
-    JoinV3: JoinV + Either3 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-    }
-}
-
-mk_join! {
-    JoinV4: JoinV + Either4 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-    }
-}
-
-mk_join! {
-    JoinV5: JoinV + Either5 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-        fifth: Fifth(I5),
-    }
-}
-
-mk_join! {
-    JoinV6: JoinV + Either6 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-        fifth: Fifth(I5),
-        sixth: Sixth(I6),
-    }
-}
-
-mk_join! {
-    JoinV7: JoinV + Either7 {
-        first: First(I1),
-        second: Second(I2),
-        third: Third(I3),
-        fourth: Fourth(I4),
-        fifth: Fifth(I5),
-        sixth: Sixth(I6),
-        seventh: Seventh(I7),
+    pub struct Join7 {
+        pub first: I1 [0],
+        pub second: I2 [1],
+        pub third: I3 [2],
+        pub fourth: I4 [3],
+        pub fifth: I5 [4],
+        pub sixth: I6 [5],
+        pub seventh: I7 [6],
     }
 }
