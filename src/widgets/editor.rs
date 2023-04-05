@@ -32,10 +32,8 @@ pub struct EditorState {
     /// horizontally.
     cursor_col: usize,
 
-    /// Width of the text when the editor was last rendered.
-    ///
-    /// Does not include additional column for cursor.
-    last_width: u16,
+    /// Position of the cursor when the editor was last rendered.
+    last_cursor_pos: Pos,
 }
 
 impl EditorState {
@@ -47,7 +45,7 @@ impl EditorState {
         Self {
             cursor_idx: text.len(),
             cursor_col: 0,
-            last_width: u16::MAX,
+            last_cursor_pos: Pos::ZERO,
             text,
         }
     }
@@ -317,6 +315,10 @@ impl EditorState {
         }
     }
 
+    pub fn last_cursor_pos(&self) -> Pos {
+        self.last_cursor_pos
+    }
+
     pub fn widget(&mut self) -> Editor<'_> {
         Editor {
             highlighted: Styled::new_plain(&self.text),
@@ -404,14 +406,6 @@ impl Editor<'_> {
         (row, line_idx)
     }
 
-    pub fn cursor_row(&self, widthdb: &mut WidthDb) -> usize {
-        let width = self.state.last_width;
-        let text_width = (width - 1) as usize;
-        let indices = wrap(widthdb, &self.state.text, text_width);
-        let (row, _) = Self::wrapped_cursor(self.state.cursor_idx, &indices);
-        row
-    }
-
     fn indices(&self, widthdb: &mut WidthDb, max_width: Option<u16>) -> Vec<usize> {
         let max_width = max_width
             // One extra column for cursor
@@ -425,7 +419,10 @@ impl Editor<'_> {
         text.clone().split_at_indices(indices)
     }
 
-    fn size(widthdb: &mut WidthDb, rows: &[Styled]) -> Size {
+    fn size_impl(&self, widthdb: &mut WidthDb, max_width: Option<u16>) -> Size {
+        let indices = self.indices(widthdb, max_width);
+        let rows = self.rows(&indices);
+
         let width = rows
             .iter()
             .map(|row| widthdb.width(row.text()))
@@ -440,19 +437,9 @@ impl Editor<'_> {
         Size::new(width, height)
     }
 
-    fn cursor(
-        &self,
-        widthdb: &mut WidthDb,
-        width: u16,
-        indices: &[usize],
-        rows: &[Styled],
-    ) -> Option<Pos> {
-        if !self.focus {
-            return None;
-        }
-
+    fn cursor(&self, widthdb: &mut WidthDb, width: u16, indices: &[usize], rows: &[Styled]) -> Pos {
         if self.hidden.is_some() {
-            return Some(Pos::new(0, 0));
+            return Pos::new(0, 0);
         }
 
         let (cursor_row, cursor_line_idx) = Self::wrapped_cursor(self.state.cursor_idx, indices);
@@ -463,17 +450,23 @@ impl Editor<'_> {
 
         let cursor_row: i32 = cursor_row.try_into().unwrap_or(i32::MAX);
         let cursor_col: i32 = cursor_col.try_into().unwrap_or(i32::MAX);
-        Some(Pos::new(cursor_row, cursor_col))
+        Pos::new(cursor_row, cursor_col)
     }
 
-    fn draw(frame: &mut Frame, rows: Vec<Styled>, cursor: Option<Pos>) {
+    fn draw_impl(&mut self, frame: &mut Frame) {
+        let size = frame.size();
+        let indices = self.indices(frame.widthdb(), Some(size.width));
+        let rows = self.rows(&indices);
+        let cursor = self.cursor(frame.widthdb(), size.width, &indices, &rows);
+
         for (i, row) in rows.into_iter().enumerate() {
             frame.write(Pos::new(0, i as i32), row);
         }
 
-        if let Some(cursor) = cursor {
+        if self.focus {
             frame.set_cursor(Some(cursor));
         }
+        self.state.last_cursor_pos = cursor;
     }
 }
 
@@ -484,18 +477,11 @@ impl<E> Widget<E> for Editor<'_> {
         max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let indices = self.indices(widthdb, max_width);
-        let rows = self.rows(&indices);
-        Ok(Self::size(widthdb, &rows))
+        Ok(self.size_impl(widthdb, max_width))
     }
 
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        let size = frame.size();
-        let widthdb = frame.widthdb();
-        let indices = self.indices(widthdb, Some(size.width));
-        let rows = self.rows(&indices);
-        let cursor = self.cursor(widthdb, size.width, &indices, &rows);
-        Self::draw(frame, rows, cursor);
+    fn draw(mut self, frame: &mut Frame) -> Result<(), E> {
+        self.draw_impl(frame);
         Ok(())
     }
 }
@@ -509,18 +495,11 @@ impl<E> AsyncWidget<E> for Editor<'_> {
         max_width: Option<u16>,
         _max_height: Option<u16>,
     ) -> Result<Size, E> {
-        let indices = self.indices(widthdb, max_width);
-        let rows = self.rows(&indices);
-        Ok(Self::size(widthdb, &rows))
+        Ok(self.size_impl(widthdb, max_width))
     }
 
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        let size = frame.size();
-        let widthdb = frame.widthdb();
-        let indices = self.indices(widthdb, Some(size.width));
-        let rows = self.rows(&indices);
-        let cursor = self.cursor(widthdb, size.width, &indices, &rows);
-        Self::draw(frame, rows, cursor);
+    async fn draw(mut self, frame: &mut Frame) -> Result<(), E> {
+        self.draw_impl(frame);
         Ok(())
     }
 }
