@@ -8,6 +8,7 @@ pub mod float;
 pub mod join;
 pub mod layer;
 pub mod padding;
+pub mod predrawn;
 pub mod resize;
 pub mod text;
 
@@ -21,5 +22,6 @@ pub use float::*;
 pub use join::*;
 pub use layer::*;
 pub use padding::*;
+pub use predrawn::*;
 pub use resize::*;
 pub use text::*;
