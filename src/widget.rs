@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 
 use crate::widgets::{
-    Background, Border, Either2, Either3, Float, JoinSegment, Layer, Padding, Resize,
+    Background, Border, Either2, Either3, Float, JoinSegment, Layer2, Padding, Resize,
 };
 use crate::{Frame, Size, WidthDb};
 
@@ -67,12 +67,12 @@ pub trait WidgetExt: Sized {
         JoinSegment::new(self)
     }
 
-    fn below<W>(self, above: W) -> Layer<Self, W> {
-        Layer::new(self, above)
+    fn below<W>(self, above: W) -> Layer2<Self, W> {
+        Layer2::new(self, above)
     }
 
-    fn above<W>(self, below: W) -> Layer<W, Self> {
-        Layer::new(below, self)
+    fn above<W>(self, below: W) -> Layer2<W, Self> {
+        Layer2::new(below, self)
     }
 
     fn padding(self) -> Padding<Self> {
