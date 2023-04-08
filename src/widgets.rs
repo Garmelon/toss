@@ -1,5 +1,6 @@
 pub mod background;
 pub mod border;
+pub mod boxed;
 pub mod cursor;
 pub mod editor;
 pub mod either;
@@ -14,6 +15,7 @@ pub mod text;
 
 pub use background::*;
 pub use border::*;
+pub use boxed::*;
 pub use cursor::*;
 pub use editor::*;
 pub use either::*;
