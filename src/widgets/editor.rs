@@ -20,6 +20,7 @@ fn wrap(widthdb: &mut WidthDb, text: &str, width: usize) -> Vec<usize> {
 // State //
 ///////////
 
+#[derive(Debug, Clone)]
 pub struct EditorState {
     text: String,
 
@@ -339,6 +340,7 @@ impl Default for EditorState {
 // Widget //
 ////////////
 
+#[derive(Debug)]
 pub struct Editor<'a> {
     state: &'a mut EditorState,
     highlighted: Styled,

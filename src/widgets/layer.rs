@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
+#[derive(Debug, Clone)]
 pub struct Layer<I> {
     layers: Vec<I>,
 }
@@ -73,6 +74,7 @@ macro_rules! mk_layer {
             $( pub $arg:ident: $type:ident, )+
         }
     ) => {
+        #[derive(Debug, Clone, Copy)]
         pub struct $name< $($type),+ >{
             $( pub $arg: $type, )+
         }

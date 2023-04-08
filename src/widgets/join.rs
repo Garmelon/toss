@@ -229,6 +229,7 @@ fn shrink(mut segments: Vec<&mut Segment>, mut available: u16) {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct JoinSegment<I> {
     pub inner: I,
     weight: f32,
@@ -353,6 +354,7 @@ fn sum_major_max_minor(segments: &[Segment]) -> (u16, u16) {
     (major, minor)
 }
 
+#[derive(Debug, Clone)]
 pub struct Join<I> {
     horizontal: bool,
     segments: Vec<JoinSegment<I>>,
@@ -511,6 +513,7 @@ macro_rules! mk_join {
             $( pub $arg:ident: $type:ident [$n:expr], )+
         }
     ) => {
+        #[derive(Debug, Clone, Copy)]
         pub struct $name< $($type),+ >{
             horizontal: bool,
             $( pub $arg: JoinSegment<$type>, )+

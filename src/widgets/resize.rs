@@ -2,6 +2,7 @@ use async_trait::async_trait;
 
 use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
 
+#[derive(Debug, Clone, Copy)]
 pub struct Resize<I> {
     pub inner: I,
     pub min_width: Option<u16>,

@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use crate::buffer::Buffer;
 use crate::{AsyncWidget, Frame, Pos, Size, Style, Styled, Widget, WidthDb};
 
+#[derive(Debug, Clone)]
 pub struct Predrawn {
     buffer: Buffer,
 }

@@ -90,7 +90,7 @@ impl StackFrame {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Buffer {
     size: Size,
     data: Vec<Cell>,
