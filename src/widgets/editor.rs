@@ -452,7 +452,7 @@ impl Editor<'_> {
 
         let cursor_row: i32 = cursor_row.try_into().unwrap_or(i32::MAX);
         let cursor_col: i32 = cursor_col.try_into().unwrap_or(i32::MAX);
-        Pos::new(cursor_row, cursor_col)
+        Pos::new(cursor_col, cursor_row)
     }
 
     fn draw_impl(&mut self, frame: &mut Frame) {
