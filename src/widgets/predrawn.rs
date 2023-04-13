@@ -11,27 +11,32 @@ pub struct Predrawn {
 }
 
 impl Predrawn {
-    pub fn new<E, W: Widget<E>>(inner: W, frame: &mut Frame) -> Result<Self, E> {
+    pub fn new<E, W: Widget<E>>(inner: W, widthdb: &mut WidthDb) -> Result<Self, E> {
         let mut tmp_frame = Frame::default();
-        tmp_frame.buffer.resize(frame.size());
-        mem::swap(&mut frame.widthdb, &mut tmp_frame.widthdb);
 
+        let size = inner.size(widthdb, None, None)?;
+        tmp_frame.buffer.resize(size);
+
+        mem::swap(widthdb, &mut tmp_frame.widthdb);
         inner.draw(&mut tmp_frame)?;
-
-        mem::swap(&mut frame.widthdb, &mut tmp_frame.widthdb);
+        mem::swap(widthdb, &mut tmp_frame.widthdb);
 
         let buffer = tmp_frame.buffer;
         Ok(Self { buffer })
     }
 
-    pub async fn new_async<E, W: AsyncWidget<E>>(inner: W, frame: &mut Frame) -> Result<Self, E> {
+    pub async fn new_async<E, W: AsyncWidget<E>>(
+        inner: W,
+        widthdb: &mut WidthDb,
+    ) -> Result<Self, E> {
         let mut tmp_frame = Frame::default();
-        tmp_frame.buffer.resize(frame.size());
-        mem::swap(&mut frame.widthdb, &mut tmp_frame.widthdb);
 
+        let size = inner.size(widthdb, None, None).await?;
+        tmp_frame.buffer.resize(size);
+
+        mem::swap(widthdb, &mut tmp_frame.widthdb);
         inner.draw(&mut tmp_frame).await?;
-
-        mem::swap(&mut frame.widthdb, &mut tmp_frame.widthdb);
+        mem::swap(widthdb, &mut tmp_frame.widthdb);
 
         let buffer = tmp_frame.buffer;
         Ok(Self { buffer })
