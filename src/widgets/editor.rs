@@ -417,7 +417,10 @@ impl Editor<'_> {
     }
 
     fn rows(&self, indices: &[usize]) -> Vec<Styled> {
-        let text = self.hidden.as_ref().unwrap_or(&self.highlighted);
+        let text = match self.hidden.as_ref() {
+            Some(hidden) if !self.highlighted.text().is_empty() => hidden,
+            _ => &self.highlighted,
+        };
         text.clone().split_at_indices(indices)
     }
 
