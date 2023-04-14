@@ -9,6 +9,7 @@ pub struct Padding<I> {
     pub right: u16,
     pub top: u16,
     pub bottom: u16,
+    pub stretch: bool,
 }
 
 impl<I> Padding<I> {
@@ -19,6 +20,7 @@ impl<I> Padding<I> {
             right: 0,
             top: 0,
             bottom: 0,
+            stretch: false,
         }
     }
 
@@ -54,6 +56,11 @@ impl<I> Padding<I> {
         self.with_horizontal(amount).with_vertical(amount)
     }
 
+    pub fn with_stretch(mut self, stretch: bool) -> Self {
+        self.stretch = stretch;
+        self
+    }
+
     fn pad_size(&self) -> Size {
         Size::new(self.left + self.right, self.top + self.bottom)
     }
@@ -84,9 +91,13 @@ where
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.push_inner(frame);
-        self.inner.draw(frame)?;
-        frame.pop();
+        if self.stretch {
+            self.inner.draw(frame)?;
+        } else {
+            self.push_inner(frame);
+            self.inner.draw(frame)?;
+            frame.pop();
+        }
         Ok(())
     }
 }
@@ -110,9 +121,13 @@ where
     }
 
     async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.push_inner(frame);
-        self.inner.draw(frame).await?;
-        frame.pop();
+        if self.stretch {
+            self.inner.draw(frame).await?;
+        } else {
+            self.push_inner(frame);
+            self.inner.draw(frame).await?;
+            frame.pop();
+        }
         Ok(())
     }
 }
