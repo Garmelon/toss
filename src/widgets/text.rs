@@ -1,6 +1,4 @@
-use async_trait::async_trait;
-
-use crate::{AsyncWidget, Frame, Pos, Size, Styled, Widget, WidthDb};
+use crate::{Frame, Pos, Size, Styled, Widget, WidthDb};
 
 #[derive(Debug, Clone)]
 pub struct Text {
@@ -30,8 +28,15 @@ impl Text {
         let indices = widthdb.wrap(self.styled.text(), max_width);
         self.styled.clone().split_at_indices(&indices)
     }
+}
 
-    fn size(&self, widthdb: &mut WidthDb, max_width: Option<u16>) -> Size {
+impl<E> Widget<E> for Text {
+    fn size(
+        &self,
+        widthdb: &mut WidthDb,
+        max_width: Option<u16>,
+        _max_height: Option<u16>,
+    ) -> Result<Size, E> {
         let lines = self.wrapped(widthdb, max_width);
 
         let min_width = lines
@@ -43,11 +48,12 @@ impl Text {
 
         let min_width: u16 = min_width.try_into().unwrap_or(u16::MAX);
         let min_height: u16 = min_height.try_into().unwrap_or(u16::MAX);
-        Size::new(min_width, min_height)
+        Ok(Size::new(min_width, min_height))
     }
 
-    fn draw(self, frame: &mut Frame) {
+    fn draw(self, frame: &mut Frame) -> Result<(), E> {
         let size = frame.size();
+
         for (i, line) in self
             .wrapped(frame.widthdb(), Some(size.width))
             .into_iter()
@@ -56,38 +62,7 @@ impl Text {
             let i: i32 = i.try_into().unwrap_or(i32::MAX);
             frame.write(Pos::new(0, i), line);
         }
-    }
-}
 
-impl<E> Widget<E> for Text {
-    fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        _max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        Ok(self.size(widthdb, max_width))
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.draw(frame);
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl<E> AsyncWidget<E> for Text {
-    async fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        _max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        Ok(self.size(widthdb, max_width))
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.draw(frame);
         Ok(())
     }
 }

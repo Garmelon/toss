@@ -1,10 +1,9 @@
 use std::iter;
 
-use async_trait::async_trait;
 use crossterm::style::Stylize;
 use unicode_segmentation::UnicodeSegmentation;
 
-use crate::{AsyncWidget, Frame, Pos, Size, Style, Styled, Widget, WidthDb};
+use crate::{Frame, Pos, Size, Style, Styled, Widget, WidthDb};
 
 /// Like [`WidthDb::wrap`] but includes a final break index if the text ends
 /// with a newline.
@@ -424,24 +423,6 @@ impl Editor<'_> {
         text.clone().split_at_indices(indices)
     }
 
-    fn size_impl(&self, widthdb: &mut WidthDb, max_width: Option<u16>) -> Size {
-        let indices = self.indices(widthdb, max_width);
-        let rows = self.rows(&indices);
-
-        let width = rows
-            .iter()
-            .map(|row| widthdb.width(row.text()))
-            .max()
-            .unwrap_or(0)
-            // One extra column for cursor
-            .saturating_add(1);
-        let height = rows.len();
-
-        let width: u16 = width.try_into().unwrap_or(u16::MAX);
-        let height: u16 = height.try_into().unwrap_or(u16::MAX);
-        Size::new(width, height)
-    }
-
     fn cursor(&self, widthdb: &mut WidthDb, width: u16, indices: &[usize], rows: &[Styled]) -> Pos {
         if self.hidden.is_some() {
             return Pos::new(0, 0);
@@ -457,8 +438,33 @@ impl Editor<'_> {
         let cursor_col: i32 = cursor_col.try_into().unwrap_or(i32::MAX);
         Pos::new(cursor_col, cursor_row)
     }
+}
 
-    fn draw_impl(&mut self, frame: &mut Frame) {
+impl<E> Widget<E> for Editor<'_> {
+    fn size(
+        &self,
+        widthdb: &mut WidthDb,
+        max_width: Option<u16>,
+        _max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        let indices = self.indices(widthdb, max_width);
+        let rows = self.rows(&indices);
+
+        let width = rows
+            .iter()
+            .map(|row| widthdb.width(row.text()))
+            .max()
+            .unwrap_or(0)
+            // One extra column for cursor
+            .saturating_add(1);
+        let height = rows.len();
+
+        let width: u16 = width.try_into().unwrap_or(u16::MAX);
+        let height: u16 = height.try_into().unwrap_or(u16::MAX);
+        Ok(Size::new(width, height))
+    }
+
+    fn draw(mut self, frame: &mut Frame) -> Result<(), E> {
         let size = frame.size();
         let indices = self.indices(frame.widthdb(), Some(size.width));
         let rows = self.rows(&indices);
@@ -472,39 +478,7 @@ impl Editor<'_> {
             frame.set_cursor(Some(cursor));
         }
         self.state.last_cursor_pos = cursor;
-    }
-}
 
-impl<E> Widget<E> for Editor<'_> {
-    fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        _max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        Ok(self.size_impl(widthdb, max_width))
-    }
-
-    fn draw(mut self, frame: &mut Frame) -> Result<(), E> {
-        self.draw_impl(frame);
-        Ok(())
-    }
-}
-
-#[allow(single_use_lifetimes)]
-#[async_trait]
-impl<E> AsyncWidget<E> for Editor<'_> {
-    async fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        _max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        Ok(self.size_impl(widthdb, max_width))
-    }
-
-    async fn draw(mut self, frame: &mut Frame) -> Result<(), E> {
-        self.draw_impl(frame);
         Ok(())
     }
 }

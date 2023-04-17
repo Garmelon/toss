@@ -1,7 +1,5 @@
 use std::mem;
 
-use async_trait::async_trait;
-
 use crate::buffer::Buffer;
 use crate::{AsyncWidget, Frame, Pos, Size, Style, Styled, Widget, WidthDb};
 
@@ -45,21 +43,6 @@ impl Predrawn {
     pub fn size(&self) -> Size {
         self.buffer.size()
     }
-
-    fn draw_impl(&self, frame: &mut Frame) {
-        for (x, y, cell) in self.buffer.cells() {
-            let pos = Pos::new(x.into(), y.into());
-            let style = Style {
-                content_style: cell.style,
-                opaque: true,
-            };
-            frame.write(pos, Styled::new(&cell.content, style));
-        }
-
-        if let Some(cursor) = self.buffer.cursor() {
-            frame.set_cursor(Some(cursor));
-        }
-    }
 }
 
 impl<E> Widget<E> for Predrawn {
@@ -73,24 +56,19 @@ impl<E> Widget<E> for Predrawn {
     }
 
     fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.draw_impl(frame);
-        Ok(())
-    }
-}
+        for (x, y, cell) in self.buffer.cells() {
+            let pos = Pos::new(x.into(), y.into());
+            let style = Style {
+                content_style: cell.style,
+                opaque: true,
+            };
+            frame.write(pos, Styled::new(&cell.content, style));
+        }
 
-#[async_trait]
-impl<E> AsyncWidget<E> for Predrawn {
-    async fn size(
-        &self,
-        _widthdb: &mut WidthDb,
-        _max_width: Option<u16>,
-        _max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        Ok(self.buffer.size())
-    }
+        if let Some(cursor) = self.buffer.cursor() {
+            frame.set_cursor(Some(cursor));
+        }
 
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.draw_impl(frame);
         Ok(())
     }
 }
