@@ -42,6 +42,20 @@ impl<I> Resize<I> {
         self
     }
 
+    fn presize(
+        &self,
+        mut width: Option<u16>,
+        mut height: Option<u16>,
+    ) -> (Option<u16>, Option<u16>) {
+        if let Some(mw) = self.max_width {
+            width = Some(width.unwrap_or(mw).min(mw));
+        }
+        if let Some(mh) = self.max_height {
+            height = Some(height.unwrap_or(mh).max(mh));
+        }
+        (width, height)
+    }
+
     fn resize(&self, size: Size) -> Size {
         let mut width = size.width;
         let mut height = size.height;
@@ -74,6 +88,7 @@ where
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
+        let (max_width, max_height) = self.presize(max_width, max_height);
         let size = self.inner.size(widthdb, max_width, max_height)?;
         Ok(self.resize(size))
     }
@@ -94,6 +109,7 @@ where
         max_width: Option<u16>,
         max_height: Option<u16>,
     ) -> Result<Size, E> {
+        let (max_width, max_height) = self.presize(max_width, max_height);
         let size = self.inner.size(widthdb, max_width, max_height).await?;
         Ok(self.resize(size))
     }
