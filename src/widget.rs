@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 
 use crate::widgets::{
-    Background, Border, Boxed, BoxedAsync, Desync, Either2, Either3, Float, JoinSegment, Layer2,
-    Padding, Resize,
+    Background, Border, Boxed, BoxedAsync, BoxedSendSync, Desync, Either2, Either3, Float,
+    JoinSegment, Layer2, Padding, Resize,
 };
 use crate::{Frame, Size, WidthDb};
 
@@ -45,6 +45,13 @@ pub trait WidgetExt: Sized {
         Self: Widget<E> + 'a,
     {
         Boxed::new(self)
+    }
+
+    fn boxed_send_sync<'a, E>(self) -> BoxedSendSync<'a, E>
+    where
+        Self: Widget<E> + Send + Sync + 'a,
+    {
+        BoxedSendSync::new(self)
     }
 
     fn boxed_async<'a, E>(self) -> BoxedAsync<'a, E>

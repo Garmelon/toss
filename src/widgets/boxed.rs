@@ -13,6 +13,74 @@ impl<'a, E> Boxed<'a, E> {
     }
 }
 
+impl<E> Widget<E> for Boxed<'_, E> {
+    fn size(
+        &self,
+        widthdb: &mut WidthDb,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        self.0.wrap_size(widthdb, max_width, max_height)
+    }
+
+    fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        self.0.wrap_draw(frame)
+    }
+}
+
+pub struct BoxedSendSync<'a, E>(Box<dyn WidgetWrapper<E> + Send + Sync + 'a>);
+
+impl<'a, E> BoxedSendSync<'a, E> {
+    pub fn new<I>(inner: I) -> Self
+    where
+        I: Widget<E> + Send + Sync + 'a,
+    {
+        Self(Box::new(inner))
+    }
+}
+
+impl<E> Widget<E> for BoxedSendSync<'_, E> {
+    fn size(
+        &self,
+        widthdb: &mut WidthDb,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        self.0.wrap_size(widthdb, max_width, max_height)
+    }
+
+    fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        self.0.wrap_draw(frame)
+    }
+}
+
+pub struct BoxedAsync<'a, E>(Box<dyn AsyncWidgetWrapper<E> + Send + Sync + 'a>);
+
+impl<'a, E> BoxedAsync<'a, E> {
+    pub fn new<I>(inner: I) -> Self
+    where
+        I: AsyncWidget<E> + Send + Sync + 'a,
+    {
+        Self(Box::new(inner))
+    }
+}
+
+#[async_trait]
+impl<E> AsyncWidget<E> for BoxedAsync<'_, E> {
+    async fn size(
+        &self,
+        widthdb: &mut WidthDb,
+        max_width: Option<u16>,
+        max_height: Option<u16>,
+    ) -> Result<Size, E> {
+        self.0.wrap_size(widthdb, max_width, max_height).await
+    }
+
+    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
+        self.0.wrap_draw(frame).await
+    }
+}
+
 trait WidgetWrapper<E> {
     fn wrap_size(
         &self,
@@ -39,32 +107,6 @@ where
 
     fn wrap_draw(self: Box<Self>, frame: &mut Frame) -> Result<(), E> {
         (*self).draw(frame)
-    }
-}
-
-impl<E> Widget<E> for Boxed<'_, E> {
-    fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.wrap_size(widthdb, max_width, max_height)
-    }
-
-    fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.wrap_draw(frame)
-    }
-}
-
-pub struct BoxedAsync<'a, E>(Box<dyn AsyncWidgetWrapper<E> + Send + Sync + 'a>);
-
-impl<'a, E> BoxedAsync<'a, E> {
-    pub fn new<I>(inner: I) -> Self
-    where
-        I: AsyncWidget<E> + Send + Sync + 'a,
-    {
-        Self(Box::new(inner))
     }
 }
 
@@ -96,21 +138,5 @@ where
 
     async fn wrap_draw(self: Box<Self>, frame: &mut Frame) -> Result<(), E> {
         (*self).draw(frame).await
-    }
-}
-
-#[async_trait]
-impl<E> AsyncWidget<E> for BoxedAsync<'_, E> {
-    async fn size(
-        &self,
-        widthdb: &mut WidthDb,
-        max_width: Option<u16>,
-        max_height: Option<u16>,
-    ) -> Result<Size, E> {
-        self.0.wrap_size(widthdb, max_width, max_height).await
-    }
-
-    async fn draw(self, frame: &mut Frame) -> Result<(), E> {
-        self.0.wrap_draw(frame).await
     }
 }
