@@ -55,6 +55,10 @@ impl Predrawn {
             };
             frame.write(pos, Styled::new(&cell.content, style));
         }
+
+        if let Some(cursor) = self.buffer.cursor() {
+            frame.set_cursor(Some(cursor));
+        }
     }
 }
 
