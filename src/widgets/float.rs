@@ -86,7 +86,7 @@ impl<I> Float<I> {
         let mut inner_pos = Pos::ZERO;
 
         if let Some(horizontal) = self.horizontal {
-            let available = (size.width - inner_size.width) as f32;
+            let available = size.width.saturating_sub(inner_size.width) as f32;
             // Biased towards the left if horizontal lands exactly on the
             // boundary between two cells
             inner_pos.x = (horizontal * available).floor().min(available) as i32;
@@ -96,7 +96,7 @@ impl<I> Float<I> {
         }
 
         if let Some(vertical) = self.vertical {
-            let available = (size.height - inner_size.height) as f32;
+            let available = size.height.saturating_sub(inner_size.height) as f32;
             // Biased towards the top if vertical lands exactly on the boundary
             // between two cells
             inner_pos.y = (vertical * available).floor().min(available) as i32;
