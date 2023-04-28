@@ -412,7 +412,8 @@ impl Editor<'_> {
             // One extra column for cursor
             .map(|w| w.saturating_sub(1) as usize)
             .unwrap_or(usize::MAX);
-        wrap(widthdb, self.state.text(), max_width)
+        let text = self.hidden.as_ref().unwrap_or(&self.highlighted);
+        wrap(widthdb, text.text(), max_width)
     }
 
     fn rows(&self, indices: &[usize]) -> Vec<Styled> {
