@@ -199,7 +199,7 @@ impl Terminal {
     /// be empty again and have no cursor position.
     pub fn present(&mut self) -> io::Result<()> {
         if self.full_redraw {
-            io::stdout().queue(Clear(ClearType::All))?;
+            self.out.queue(Clear(ClearType::All))?;
             self.prev_frame_buffer.reset(); // Because the screen is now empty
             self.full_redraw = false;
         }
