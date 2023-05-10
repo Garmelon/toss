@@ -9,7 +9,10 @@ use crossterm::event::{
     PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
 use crossterm::style::{PrintStyledContent, StyledContent};
-use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::terminal::{
+    BeginSynchronizedUpdate, Clear, ClearType, EndSynchronizedUpdate, EnterAlternateScreen,
+    LeaveAlternateScreen,
+};
 use crossterm::{ExecutableCommand, QueueableCommand};
 
 use crate::buffer::Buffer;
@@ -198,14 +201,11 @@ impl Terminal {
     /// After calling this function, the frame returned by [`Self::frame`] will
     /// be empty again and have no cursor position.
     pub fn present(&mut self) -> io::Result<()> {
-        if self.full_redraw {
-            self.out.queue(Clear(ClearType::All))?;
-            self.prev_frame_buffer.reset(); // Because the screen is now empty
-            self.full_redraw = false;
-        }
+        self.out.queue(BeginSynchronizedUpdate)?;
+        let result = self.draw_to_screen();
+        self.out.queue(EndSynchronizedUpdate)?;
+        result?;
 
-        self.draw_differences()?;
-        self.update_cursor()?;
         self.out.flush()?;
 
         mem::swap(&mut self.prev_frame_buffer, &mut self.frame.buffer);
@@ -241,6 +241,19 @@ impl Terminal {
         self.autoresize()?;
         widget.draw(self.frame()).await?;
         self.present()?;
+        Ok(())
+    }
+
+    fn draw_to_screen(&mut self) -> io::Result<()> {
+        if self.full_redraw {
+            self.out.queue(Clear(ClearType::All))?;
+            self.prev_frame_buffer.reset(); // Because the screen is now empty
+            self.full_redraw = false;
+        }
+
+        self.draw_differences()?;
+        self.update_cursor()?;
+
         Ok(())
     }
 
