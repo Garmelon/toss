@@ -13,6 +13,11 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
-## v0.1.0 - 2023-05.14
+## v0.2.0 - 2023-08-31
+
+### Changed
+- **(breaking)** Updated dependencies
+
+## v0.1.0 - 2023-05-14
 
 Initial release
