@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.2.1 - 2024-01-05
+
 ### Added
 - `Frame::set_title`
 - `WidgetExt::title`
