@@ -7,6 +7,7 @@ use crate::{Pos, Size, Styled, WidthDb};
 pub struct Frame {
     pub(crate) widthdb: WidthDb,
     pub(crate) buffer: Buffer,
+    pub(crate) title: Option<String>,
 }
 
 impl Frame {
@@ -24,6 +25,7 @@ impl Frame {
 
     pub fn reset(&mut self) {
         self.buffer.reset();
+        self.title = None;
     }
 
     pub fn cursor(&self) -> Option<Pos> {
@@ -40,6 +42,10 @@ impl Frame {
 
     pub fn hide_cursor(&mut self) {
         self.set_cursor(None);
+    }
+
+    pub fn set_title(&mut self, title: Option<String>) {
+        self.title = title;
     }
 
     pub fn widthdb(&mut self) -> &mut WidthDb {

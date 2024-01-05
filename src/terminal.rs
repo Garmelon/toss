@@ -11,7 +11,7 @@ use crossterm::event::{
 use crossterm::style::{PrintStyledContent, StyledContent};
 use crossterm::terminal::{
     BeginSynchronizedUpdate, Clear, ClearType, EndSynchronizedUpdate, EnterAlternateScreen,
-    LeaveAlternateScreen,
+    LeaveAlternateScreen, SetTitle,
 };
 use crossterm::{ExecutableCommand, QueueableCommand};
 
@@ -253,6 +253,7 @@ impl Terminal {
 
         self.draw_differences()?;
         self.update_cursor()?;
+        self.update_title()?;
 
         Ok(())
     }
@@ -285,6 +286,13 @@ impl Terminal {
         }
 
         self.out.queue(Hide)?;
+        Ok(())
+    }
+
+    fn update_title(&mut self) -> io::Result<()> {
+        if let Some(title) = &self.frame.title {
+            self.out.queue(SetTitle(title.clone()))?;
+        }
         Ok(())
     }
 }
