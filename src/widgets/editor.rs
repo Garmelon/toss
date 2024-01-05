@@ -465,7 +465,7 @@ impl<E> Widget<E> for Editor<'_> {
         Ok(Size::new(width, height))
     }
 
-    fn draw(mut self, frame: &mut Frame) -> Result<(), E> {
+    fn draw(self, frame: &mut Frame) -> Result<(), E> {
         let size = frame.size();
         let indices = self.indices(frame.widthdb(), Some(size.width));
         let rows = self.rows(&indices);
