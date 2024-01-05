@@ -13,6 +13,7 @@ pub mod padding;
 pub mod predrawn;
 pub mod resize;
 pub mod text;
+pub mod title;
 
 pub use background::*;
 pub use border::*;
@@ -29,3 +30,4 @@ pub use padding::*;
 pub use predrawn::*;
 pub use resize::*;
 pub use text::*;
+pub use title::*;

@@ -2,7 +2,7 @@ use async_trait::async_trait;
 
 use crate::widgets::{
     Background, Border, Boxed, BoxedAsync, BoxedSendSync, Desync, Either2, Either3, Float,
-    JoinSegment, Layer2, Padding, Resize,
+    JoinSegment, Layer2, Padding, Resize, Title,
 };
 use crate::{Frame, Size, WidthDb};
 
@@ -106,6 +106,10 @@ pub trait WidgetExt: Sized {
 
     fn resize(self) -> Resize<Self> {
         Resize::new(self)
+    }
+
+    fn title<S: ToString>(self, title: S) -> Title<Self> {
+        Title::new(self, title)
     }
 }
 
