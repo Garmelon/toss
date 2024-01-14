@@ -13,6 +13,9 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+### Fixed
+- Crash when drawing `widgets::Predrawn` with width 0
+
 ## v0.2.1 - 2024-01-05
 
 ### Added

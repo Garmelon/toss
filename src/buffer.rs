@@ -332,6 +332,9 @@ impl<'a> Iterator for Cells<'a> {
     type Item = (u16, u16, &'a Cell);
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.x >= self.buffer.size.width {
+            return None;
+        }
         if self.y >= self.buffer.size.height {
             return None;
         }
