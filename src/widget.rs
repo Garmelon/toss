@@ -60,6 +60,7 @@ pub trait WidgetExt: Sized {
     {
         BoxedAsync::new(self)
     }
+
     fn desync(self) -> Desync<Self> {
         Desync(self)
     }
