@@ -101,6 +101,15 @@ impl WidthDb {
             return Ok(());
         }
         for grapheme in self.requested.drain() {
+            if grapheme.chars().any(|c|c.is_ascii_control()){
+                // ASCII control characters like the escape character or the
+                // bell character tend to be interpreted specially by terminals.
+                // This may break width measurements. To avoid this, we just
+                // assign each control character a with of 0.
+                self.known.insert(grapheme, 0);
+                continue;
+            }
+
             out.queue(Clear(ClearType::All))?
                 .queue(MoveTo(0, 0))?
                 .queue(Print(&grapheme))?;
