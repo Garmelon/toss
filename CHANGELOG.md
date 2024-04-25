@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.2.3 - 2024-04-25
+
 ### Fixed
 - Width measurements of ASCII control characters
 - Toss messing up the terminal state
