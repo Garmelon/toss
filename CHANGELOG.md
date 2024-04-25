@@ -15,6 +15,7 @@ Procedure when bumping the version number:
 
 ### Fixed
 - Width measurements of ASCII control characters
+- Toss messing up the terminal state
 
 ## v0.2.2 - 2024-01-14
 

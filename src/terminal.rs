@@ -68,12 +68,12 @@ impl Terminal {
     /// presenting the next frame.
     pub fn suspend(&mut self) -> io::Result<()> {
         crossterm::terminal::disable_raw_mode()?;
-        self.out.execute(LeaveAlternateScreen)?;
         #[cfg(not(windows))]
         {
-            self.out.execute(DisableBracketedPaste)?;
             self.out.execute(PopKeyboardEnhancementFlags)?;
+            self.out.execute(DisableBracketedPaste)?;
         }
+        self.out.execute(LeaveAlternateScreen)?;
         self.out.execute(Show)?;
         Ok(())
     }
