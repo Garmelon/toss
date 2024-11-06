@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.3.0 - 2024-11-06
+
 ### Added
 - `Terminal::mark_dirty`
 
