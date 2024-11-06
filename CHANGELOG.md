@@ -16,6 +16,9 @@ Procedure when bumping the version number:
 ### Added
 - `Terminal::mark_dirty`
 
+### Changed
+- **(breaking)** Updated dependencies
+
 ## v0.2.3 - 2024-04-25
 
 ### Fixed
