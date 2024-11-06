@@ -193,6 +193,12 @@ impl Terminal {
         &mut self.frame.widthdb
     }
 
+    /// Mark the terminal as dirty, forcing a full redraw whenever any variant
+    /// of [`Self::present`] is called.
+    pub fn mark_dirty(&mut self) {
+        self.full_redraw = true;
+    }
+
     /// Display the current frame on the screen and prepare the next frame.
     ///
     /// Before drawing and presenting a frame, [`Self::measure_widths`] and
