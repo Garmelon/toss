@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.3.1 - 2025-02-21
+
 ### Fixed
 - Rendering glitches, mainly related to emoji
 
