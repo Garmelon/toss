@@ -13,6 +13,9 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+### Fixed
+- Rendering glitches, mainly related to emoji
+
 ## v0.3.0 - 2024-11-06
 
 ### Added

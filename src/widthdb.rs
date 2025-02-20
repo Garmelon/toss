@@ -6,7 +6,7 @@ use crossterm::style::Print;
 use crossterm::terminal::{Clear, ClearType};
 use crossterm::QueueableCommand;
 use unicode_segmentation::UnicodeSegmentation;
-use unicode_width::UnicodeWidthStr;
+use unicode_width::UnicodeWidthChar;
 
 use crate::wrap;
 
@@ -36,6 +36,26 @@ impl WidthDb {
         self.tab_width - (col % self.tab_width as usize) as u8
     }
 
+    /// Estimate what our terminal emulator thinks the width of a grapheme is.
+    ///
+    /// Different terminal emulators are all broken in different ways, so this
+    /// method will never be able to give a correct solution. For that, the only
+    /// possible method is actually measuring.
+    ///
+    /// Instead, it implements a character-wise width calculation. The hope is
+    /// that dumb terminal emulators do something roughly like this, and smart
+    /// terminal emulators try to emulate dumb ones for compatibility. In
+    /// practice, this counting approach seems to be fairly robust.
+    fn grapheme_width_estimate(grapheme: &str) -> u8 {
+        grapheme
+            .chars()
+            .filter(|c| !c.is_ascii_control())
+            .flat_map(|c| c.width())
+            .sum::<usize>()
+            .try_into()
+            .unwrap_or(u8::MAX)
+    }
+
     /// Determine the width of a grapheme.
     ///
     /// If the grapheme is a tab, the column is used to determine its width.
@@ -47,18 +67,14 @@ impl WidthDb {
         if grapheme == "\t" {
             return self.tab_width_at_column(col);
         }
-        if grapheme.chars().any(|c| c.is_ascii_control()) {
-            return 0; // See measure_widths function
-        }
         if !self.active {
-            return grapheme.width() as u8;
+            return Self::grapheme_width_estimate(grapheme);
         }
-
         if let Some(width) = self.known.get(grapheme) {
             *width
         } else {
             self.requested.insert(grapheme.to_string());
-            grapheme.width() as u8
+            Self::grapheme_width_estimate(grapheme)
         }
     }
 
