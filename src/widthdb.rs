@@ -47,9 +47,13 @@ impl WidthDb {
         if grapheme == "\t" {
             return self.tab_width_at_column(col);
         }
+        if grapheme.chars().any(|c| c.is_ascii_control()) {
+            return 0; // See measure_widths function
+        }
         if !self.active {
             return grapheme.width() as u8;
         }
+
         if let Some(width) = self.known.get(grapheme) {
             *width
         } else {
@@ -101,7 +105,7 @@ impl WidthDb {
             return Ok(());
         }
         for grapheme in self.requested.drain() {
-            if grapheme.chars().any(|c|c.is_ascii_control()){
+            if grapheme.chars().any(|c| c.is_ascii_control()) {
                 // ASCII control characters like the escape character or the
                 // bell character tend to be interpreted specially by terminals.
                 // This may break width measurements. To avoid this, we just
