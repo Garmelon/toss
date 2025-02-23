@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.3.2 - 2025-02-23
+
 ### Added
 - Unicode-based grapheme width estimation method
 
