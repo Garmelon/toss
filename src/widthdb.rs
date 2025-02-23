@@ -6,14 +6,31 @@ use crossterm::style::Print;
 use crossterm::terminal::{Clear, ClearType};
 use crossterm::QueueableCommand;
 use unicode_segmentation::UnicodeSegmentation;
-use unicode_width::UnicodeWidthChar;
+use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
 use crate::wrap;
+
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum WidthEstimationMethod {
+    /// Estimate the width of a grapheme using legacy methods.
+    ///
+    /// Different terminal emulators all use different approaches to determine
+    /// grapheme widths, so this method will never be able to give a fully
+    /// correct solution. For that, the only possible approach is measuring the
+    /// actual grapheme width.
+    #[default]
+    Legacy,
+
+    /// Estimate the width of a grapheme using the unicode standard in a
+    /// best-effort manner.
+    Unicode,
+}
 
 /// Measures and stores the with (in terminal coordinates) of graphemes.
 #[derive(Debug)]
 pub struct WidthDb {
-    pub(crate) active: bool,
+    pub(crate) estimate: WidthEstimationMethod,
+    pub(crate) measure: bool,
     pub(crate) tab_width: u8,
     known: HashMap<String, u8>,
     requested: HashSet<String>,
@@ -22,7 +39,8 @@ pub struct WidthDb {
 impl Default for WidthDb {
     fn default() -> Self {
         Self {
-            active: false,
+            estimate: WidthEstimationMethod::default(),
+            measure: false,
             tab_width: 8,
             known: Default::default(),
             requested: Default::default(),
@@ -36,26 +54,6 @@ impl WidthDb {
         self.tab_width - (col % self.tab_width as usize) as u8
     }
 
-    /// Estimate what our terminal emulator thinks the width of a grapheme is.
-    ///
-    /// Different terminal emulators are all broken in different ways, so this
-    /// method will never be able to give a correct solution. For that, the only
-    /// possible method is actually measuring.
-    ///
-    /// Instead, it implements a character-wise width calculation. The hope is
-    /// that dumb terminal emulators do something roughly like this, and smart
-    /// terminal emulators try to emulate dumb ones for compatibility. In
-    /// practice, this counting approach seems to be fairly robust.
-    fn grapheme_width_estimate(grapheme: &str) -> u8 {
-        grapheme
-            .chars()
-            .filter(|c| !c.is_ascii_control())
-            .flat_map(|c| c.width())
-            .sum::<usize>()
-            .try_into()
-            .unwrap_or(u8::MAX)
-    }
-
     /// Determine the width of a grapheme.
     ///
     /// If the grapheme is a tab, the column is used to determine its width.
@@ -67,14 +65,37 @@ impl WidthDb {
         if grapheme == "\t" {
             return self.tab_width_at_column(col);
         }
-        if !self.active {
-            return Self::grapheme_width_estimate(grapheme);
-        }
-        if let Some(width) = self.known.get(grapheme) {
-            *width
-        } else {
+
+        if self.measure {
+            if let Some(width) = self.known.get(grapheme) {
+                return *width;
+            }
             self.requested.insert(grapheme.to_string());
-            Self::grapheme_width_estimate(grapheme)
+        }
+
+        match self.estimate {
+            // A character-wise width calculation is a simple and obvious
+            // approach to compute character widths. The idea is that dumb
+            // terminal emulators tend to do something roughly like this, and
+            // smart terminal emulators try to emulate dumb ones for
+            // compatibility. In practice, this approach seems to be fairly
+            // robust.
+            WidthEstimationMethod::Legacy => grapheme
+                .chars()
+                .filter(|c| !c.is_ascii_control())
+                .flat_map(|c| c.width())
+                .sum::<usize>()
+                .try_into()
+                .unwrap_or(u8::MAX),
+
+            // The unicode width crate considers newlines to have a width of 1
+            // while the rendering code expects it to have a width of 0.
+            WidthEstimationMethod::Unicode => grapheme
+                .split('\n')
+                .map(|s| s.width())
+                .sum::<usize>()
+                .try_into()
+                .unwrap_or(u8::MAX),
         }
     }
 
@@ -107,7 +128,7 @@ impl WidthDb {
     /// Whether any new graphemes have been seen since the last time
     /// [`Self::measure_widths`] was called.
     pub(crate) fn measuring_required(&self) -> bool {
-        self.active && !self.requested.is_empty()
+        self.measure && !self.requested.is_empty()
     }
 
     /// Measure the width of all new graphemes that have been seen since the
@@ -117,7 +138,7 @@ impl WidthDb {
     /// the terminal. After it finishes, the terminal's contents should be
     /// assumed to be garbage and a full redraw should be performed.
     pub(crate) fn measure_widths(&mut self, out: &mut impl Write) -> io::Result<()> {
-        if !self.active {
+        if !self.measure {
             return Ok(());
         }
         for grapheme in self.requested.drain() {

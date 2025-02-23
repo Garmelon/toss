@@ -16,7 +16,7 @@ use crossterm::terminal::{
 use crossterm::{ExecutableCommand, QueueableCommand};
 
 use crate::buffer::Buffer;
-use crate::{AsyncWidget, Frame, Size, Widget, WidthDb};
+use crate::{AsyncWidget, Frame, Size, Widget, WidthDb, WidthEstimationMethod};
 
 /// Wrapper that manages terminal output.
 ///
@@ -112,11 +112,25 @@ impl Terminal {
         self.frame.widthdb.tab_width
     }
 
+    /// Set the grapheme width estimation method.
+    ///
+    /// For more details, see [`WidthEstimationMethod`].
+    pub fn set_width_estimation_method(&mut self, method: WidthEstimationMethod) {
+        self.frame.widthdb.estimate = method;
+    }
+
+    /// The grapheme width estimation method.
+    ///
+    /// For more details, see [`WidthEstimationMethod`].
+    pub fn width_estimation_method(&mut self) -> WidthEstimationMethod {
+        self.frame.widthdb.estimate
+    }
+
     /// Enable or disable grapheme width measurements.
     ///
     /// For more details, see [`Self::measuring`].
     pub fn set_measuring(&mut self, active: bool) {
-        self.frame.widthdb.active = active;
+        self.frame.widthdb.measure = active;
     }
 
     /// Whether grapheme widths should be measured or estimated.
@@ -135,7 +149,7 @@ impl Terminal {
     /// Standard Annex #11. This usually works fine, but may break on some emoji
     /// or other less commonly used character sequences.
     pub fn measuring(&self) -> bool {
-        self.frame.widthdb.active
+        self.frame.widthdb.measure
     }
 
     /// Whether any unmeasured graphemes were seen since the last call to
