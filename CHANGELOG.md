@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.3.3 - 2025-02-28
+
 ### Fixed
 - Rendering glitches in unicode-based with estimation
 
