@@ -88,10 +88,10 @@ impl WidthDb {
                 .try_into()
                 .unwrap_or(u8::MAX),
 
-            // The unicode width crate considers newlines to have a width of 1
-            // while the rendering code expects it to have a width of 0.
+            // The unicode width crate considers control chars to have a width
+            // of 1 even though they usually have a width of 0 when displayed.
             WidthEstimationMethod::Unicode => grapheme
-                .split('\n')
+                .split(|c: char| c.is_ascii_control())
                 .map(|s| s.width())
                 .sum::<usize>()
                 .try_into()
