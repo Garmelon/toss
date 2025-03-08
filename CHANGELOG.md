@@ -13,6 +13,8 @@ Procedure when bumping the version number:
 
 ## Unreleased
 
+## v0.3.4 - 2025-03-8
+
 ### Added
 - `Frame::set_bell` to print a bell character when the frame is displayed
 - `widgets::bell`
