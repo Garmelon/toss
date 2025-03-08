@@ -1,4 +1,5 @@
 pub mod background;
+pub mod bell;
 pub mod border;
 pub mod boxed;
 pub mod cursor;
@@ -16,6 +17,7 @@ pub mod text;
 pub mod title;
 
 pub use background::*;
+pub use bell::*;
 pub use border::*;
 pub use boxed::*;
 pub use cursor::*;

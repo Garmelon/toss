@@ -15,6 +15,7 @@ Procedure when bumping the version number:
 
 ### Added
 - `Frame::set_bell` to print a bell character when the frame is displayed
+- `widgets::bell`
 
 ## v0.3.3 - 2025-02-28
 
