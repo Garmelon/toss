@@ -8,7 +8,7 @@ use crossterm::event::{
     DisableBracketedPaste, EnableBracketedPaste, KeyboardEnhancementFlags,
     PopKeyboardEnhancementFlags, PushKeyboardEnhancementFlags,
 };
-use crossterm::style::{PrintStyledContent, StyledContent};
+use crossterm::style::{Print, PrintStyledContent, StyledContent};
 use crossterm::terminal::{
     BeginSynchronizedUpdate, Clear, ClearType, EndSynchronizedUpdate, EnterAlternateScreen,
     LeaveAlternateScreen, SetTitle,
@@ -274,6 +274,7 @@ impl Terminal {
         self.draw_differences()?;
         self.update_cursor()?;
         self.update_title()?;
+        self.ring_bell()?;
 
         Ok(())
     }
@@ -313,6 +314,14 @@ impl Terminal {
         if let Some(title) = &self.frame.title {
             self.out.queue(SetTitle(title.clone()))?;
         }
+        Ok(())
+    }
+
+    fn ring_bell(&mut self) -> io::Result<()> {
+        if self.frame.bell {
+            self.out.queue(Print('\x07'))?;
+        }
+        self.frame.bell = false;
         Ok(())
     }
 }

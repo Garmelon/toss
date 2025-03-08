@@ -8,6 +8,7 @@ pub struct Frame {
     pub(crate) widthdb: WidthDb,
     pub(crate) buffer: Buffer,
     pub(crate) title: Option<String>,
+    pub(crate) bell: bool,
 }
 
 impl Frame {
@@ -46,6 +47,10 @@ impl Frame {
 
     pub fn set_title(&mut self, title: Option<String>) {
         self.title = title;
+    }
+
+    pub fn set_bell(&mut self, bell: bool) {
+        self.bell = bell;
     }
 
     pub fn widthdb(&mut self) -> &mut WidthDb {
